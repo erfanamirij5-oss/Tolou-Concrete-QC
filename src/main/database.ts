@@ -6,6 +6,7 @@ import { createLaboratoryService } from '../application/laboratory.js';
 import { createProjectService } from '../application/projects.js';
 import { createEngineeringService } from '../application/engineering.js';
 import { createQcPartiesService } from '../application/qc-parties.js';
+import { createAttachmentService } from '../application/attachments.js';
 
 const COMPANY_ID = 'tolou-local-company';
 const DEFAULT_COMPANY_NAME = 'شرکت شما';
@@ -15,6 +16,7 @@ export type LaboratoryService = ReturnType<typeof createLaboratoryService>;
 export type ProjectService = ReturnType<typeof createProjectService>;
 export type EngineeringService = ReturnType<typeof createEngineeringService>;
 export type QcPartiesService = ReturnType<typeof createQcPartiesService>;
+export type AttachmentService = ReturnType<typeof createAttachmentService>;
 
 export interface DatabaseRuntime {
   db: DatabaseSync;
@@ -22,10 +24,12 @@ export interface DatabaseRuntime {
   projects: ProjectService;
   engineering: EngineeringService;
   qcParties: QcPartiesService;
+  attachments: AttachmentService;
 }
 
 export function createDatabaseRuntime(): DatabaseRuntime {
-  const databasePath = join(app.getPath('userData'), 'tolou-qc.sqlite');
+  const userDataPath = app.getPath('userData');
+  const databasePath = join(userDataPath, 'tolou-qc.sqlite');
   const db = new DatabaseSync(databasePath);
   migrate(db);
   const company = db.prepare('SELECT id FROM companies WHERE id=?').get(COMPANY_ID);
@@ -36,5 +40,6 @@ export function createDatabaseRuntime(): DatabaseRuntime {
     projects: createProjectService(db, {companyId: COMPANY_ID}),
     engineering: createEngineeringService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
     qcParties: createQcPartiesService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
+    attachments: createAttachmentService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR, storageRoot: join(userDataPath, 'attachments')}),
   };
 }
