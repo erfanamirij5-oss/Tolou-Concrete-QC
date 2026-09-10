@@ -18,7 +18,29 @@ jobs:
       - name: Patch Windows Squirrel runtime integration
         shell: pwsh
         run: |
-          node -e "const fs=require('fs');const p='src/main/main.ts';let s=fs.readFileSync(p,'utf8');s=s.replace(\"import { fileURLToPath } from 'node:url';\",\"import { fileURLToPath } from 'node:url';\\nimport { createRequire } from 'node:module';\");s=s.replace(\"const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;\",\"const require=createRequire(import.meta.url);\\nconst handledSquirrelEvent=process.platform==='win32'&&Boolean(require('electron-squirrel-startup'));\\nif(handledSquirrelEvent)app.quit();\\nif(process.platform==='win32')app.setAppUserModelId('com.squirrel.tolou_concrete_qc.TolouConcreteQC');\\nconst __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;\");fs.writeFileSync(p,s)"
+          $path = 'src/main/main.ts'
+          $content = Get-Content -Raw -Path $path
+          $oldImport = @'
+          import { fileURLToPath } from 'node:url';
+          '@.Trim()
+          $newImport = @'
+          import { fileURLToPath } from 'node:url';
+          import { createRequire } from 'node:module';
+          '@.Trim()
+          $oldRuntime = @'
+          const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
+          '@.Trim()
+          $newRuntime = @'
+          const require=createRequire(import.meta.url);
+          const handledSquirrelEvent=process.platform==='win32'&&Boolean(require('electron-squirrel-startup'));
+          if(handledSquirrelEvent)app.quit();
+          if(process.platform==='win32')app.setAppUserModelId('com.squirrel.tolou_concrete_qc.TolouConcreteQC');
+          const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
+          '@.Trim()
+          if (-not $content.Contains($oldImport)) { throw 'Expected node:url import not found' }
+          if (-not $content.Contains($oldRuntime)) { throw 'Expected runtime anchor not found' }
+          $content = $content.Replace($oldImport, $newImport).Replace($oldRuntime, $newRuntime)
+          Set-Content -Path $path -Value $content -NoNewline -Encoding utf8
       - name: Verify patch and typecheck
         shell: pwsh
         run: |
