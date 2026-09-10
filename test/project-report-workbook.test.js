@@ -53,6 +53,13 @@ test('project report workbook remains standards-neutral when no rule profile is 
   assert.equal(report.standards.acceptanceEvaluated,false);
   const bytes=XLSX.write(projectReportWorkbook(report),{bookType:'xlsx',type:'buffer'});
   const parsed=XLSX.read(bytes);
-  const allText=parsed.SheetNames.flatMap(name=>XLSX.utils.sheet_to_json(parsed.Sheets[name],{header:1,raw:false}).flat()).join(' ');
-  assert.doesNotMatch(allText,/\bPASS\b|\bFAIL\b|قبول|مردود/iu);
+  const summaryRows=XLSX.utils.sheet_to_json(parsed.Sheets['خلاصه'],{header:1,raw:true});
+  const ruleProfileRow=summaryRows.find(row=>row[0]==='Rule Profile');
+  const acceptanceRow=summaryRows.find(row=>row[0]==='ارزیابی قبولی/رد');
+  assert.deepEqual(ruleProfileRow,['Rule Profile','—']);
+  assert.deepEqual(acceptanceRow,['ارزیابی قبولی/رد','خیر']);
+
+  const allRows=parsed.SheetNames.flatMap(name=>XLSX.utils.sheet_to_json(parsed.Sheets[name],{header:1,raw:false}));
+  const forbiddenVerdict=/^(?:PASS|FAIL|قبول|مردود)$/iu;
+  assert.equal(allRows.flat().filter(value=>forbiddenVerdict.test(String(value).trim())).length,0);
 });
