@@ -1,0 +1,24 @@
+name: Apply IPC sender hardening
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/windows-desktop-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/harden-ipc.mjs
+      - name: Commit hardening
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main/main.ts
+          git diff --cached --check
+          git commit -m "Validate sender for all IPC handlers"
+          git push origin HEAD:feature/windows-desktop-foundation
