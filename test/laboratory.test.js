@@ -46,3 +46,15 @@ test('approval appends immutable approved revision and live list reflects it',t=
   assert.deepEqual(approval,{sampleId:'s1-1',revision:2,state:'approved'}); const approved=service.listSamples().find((sample)=>sample.id==='s1-1'); assert.equal(approved?.state,'approved'); assert.equal(service.listResultHistory('s1-1').length,2);
   assert.equal(db.prepare('SELECT approved_by FROM current_results WHERE sample_id=?').get('s1-1').approved_by,'کاربر نشست'); assert.throws(()=>service.approveDraft({sampleId:'s1-1',expectedRevision:1}));
 });
+test('approved correction reopens as draft and review queue exposes only pending review',t=>{
+  const {service}=fixture(t);service.createSeries(internal);service.saveDraft(draft);service.approveDraft({sampleId:'s1-1',expectedRevision:1});
+  const correction=service.requestCorrection({sampleId:'s1-1',expectedRevision:2,strengthMpa:19.5,testedAt:draft.testedAt,testedBy:'آزمایشگر دوم',reason:'اصلاح قرائت دستگاه'});
+  assert.deepEqual(correction,{sampleId:'s1-1',revision:3,state:'draft'}); const queue=service.listReviewQueue(); assert.equal(queue.length,1); assert.equal(queue[0].id,'s1-1'); assert.equal(queue[0].reason,'اصلاح قرائت دستگاه');
+  const approval=service.approveDraft({sampleId:'s1-1',expectedRevision:3}); assert.equal(approval.revision,4); assert.equal(service.listReviewQueue().length,0);
+});
+test('void appends terminal audit revision and rejects stale or repeated void',t=>{
+  const {service}=fixture(t);service.createSeries(internal);service.saveDraft(draft);service.approveDraft({sampleId:'s1-1',expectedRevision:1});
+  assert.throws(()=>service.voidResult({sampleId:'s1-1',expectedRevision:1,reason:'قدیمی'}),/تغییر کرده/);
+  const voided=service.voidResult({sampleId:'s1-1',expectedRevision:2,reason:'نمونه آسیب‌دیده'}); assert.deepEqual(voided,{sampleId:'s1-1',revision:3,state:'void'});
+  const history=service.listResultHistory('s1-1'); assert.equal(history[0].state,'void'); assert.equal(history[0].strength_mpa,null); assert.equal(history[0].reason,'نمونه آسیب‌دیده'); assert.throws(()=>service.voidResult({sampleId:'s1-1',expectedRevision:3,reason:'دوباره'}),/قبلاً باطل/);
+});
