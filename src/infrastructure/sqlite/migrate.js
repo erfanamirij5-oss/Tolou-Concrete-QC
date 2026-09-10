@@ -11,6 +11,7 @@ const migrationFiles = [
   [7, './007-pour-qc-context.sql'],
   [8, './008-company-profile.sql'],
   [9, './009-sampling-comparison-parties.sql'],
+  [10, './010-sampling-mix-snapshot.sql'],
 ];
 
 function loadMigrations() {
