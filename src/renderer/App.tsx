@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LaboratoryWorkbench } from './LaboratoryWorkbench';
 import { ProjectWorkbench } from './ProjectWorkbench';
+import { SampleResultsPanel } from './SampleResultsPanel';
 import type { DashboardSummary } from '../shared/ipc';
 
 type Metric = { label: string; value: string; hint: string; tone?: 'ok' | 'warn' | 'danger' };
@@ -43,11 +44,11 @@ export function App() {
     <section className="workspace">
       <header className="topbar glass"><div><p className="eyebrow">آزمایشگاه مرکزی</p><h1>داشبورد کنترل کیفیت</h1></div><div className="topbar-actions"><div className="date-chip">{persianDate}</div><button className="avatar-button" aria-label="حساب کاربری">ا.ا</button></div></header>
       <div className="content-grid">
-        <section className="hero glass"><div><p className="eyebrow eyebrow--accent">مرکز عملیات امروز</p><h2>کنترل سریع، تصمیم مهندسی، سابقه قابل ردیابی.</h2><p>ثبت پروژه، بتن‌ریزی، سری نمونه و نتایج آزمون روی پایگاه داده آفلاین و قابل ردیابی.</p></div><div className="hero-orbit" aria-hidden="true"><div /><div /><span>QC</span></div></section>
+        <section className="hero glass"><div><p className="eyebrow eyebrow--accent">مرکز عملیات امروز</p><h2>کنترل سریع، تصمیم مهندسی، سابقه قابل ردیابی.</h2><p>ثبت پروژه، بتن‌ریزی، سری نمونه، نتیجه و تأیید مهندسی روی پایگاه داده آفلاین و قابل ردیابی.</p></div><div className="hero-orbit" aria-hidden="true"><div /><div /><span>QC</span></div></section>
         <section className="metrics-grid" aria-label="شاخص‌های زنده">{metrics.map((metric)=><article className="metric-card glass" key={metric.label}><div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone ?? 'neutral'}`} /></div><strong>{metric.value}</strong><small>{metric.hint}</small></article>)}</section>
         <ProjectWorkbench onChanged={()=>void refreshDashboard()} />
         <LaboratoryWorkbench />
-        <section className="panel glass panel--wide"><div className="panel-heading"><div><p className="eyebrow">وضعیت سامانه</p><h3>داده نمایشی حذف شد</h3></div><span className="count-badge">LIVE</span></div><p>شاخص‌های بالای صفحه مستقیماً از SQLite خوانده می‌شوند. فهرست زنده نمونه‌ها و نتایج در مرحله بعد به این بخش متصل می‌شود.</p></section>
+        <SampleResultsPanel onChanged={()=>void refreshDashboard()} />
       </div>
     </section>
   </main>;
