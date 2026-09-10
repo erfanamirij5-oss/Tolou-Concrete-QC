@@ -58,3 +58,17 @@ test('void appends terminal audit revision and rejects stale or repeated void',t
   const voided=service.voidResult({sampleId:'s1-1',expectedRevision:2,reason:'نمونه آسیب‌دیده'}); assert.deepEqual(voided,{sampleId:'s1-1',revision:3,state:'void'});
   const history=service.listResultHistory('s1-1'); assert.equal(history[0].state,'void'); assert.equal(history[0].strength_mpa,null); assert.equal(history[0].reason,'نمونه آسیب‌دیده'); assert.throws(()=>service.voidResult({sampleId:'s1-1',expectedRevision:3,reason:'دوباره'}),/قبلاً باطل/);
 });
+test('witness schedule revisions are immutable, ordered, and required before testing',t=>{
+  const {db,service}=fixture(t); service.createSeries(internal);
+  const first=service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-09-15T08:00:00.000Z',reason:'برنامه آزمون شاهد'});
+  assert.equal(first.revision,1); assert.throws(()=>service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-09-16T08:00:00.000Z',reason:'قدیمی'}),/تغییر کرده/);
+  const second=service.scheduleWitness({sampleId:'s1-6',expectedRevision:1,dueAt:'2026-09-16T08:00:00.000Z',reason:'هماهنگی آزمایشگاه'}); assert.equal(second.revision,2);
+  const row=service.listSamples().find((sample)=>sample.id==='s1-6'); assert.equal(row?.witness_schedule_revision,2); assert.equal(row?.due_at,'2026-09-16T08:00:00.000Z');
+  const history=service.listWitnessScheduleHistory('s1-6'); assert.equal(history.length,2); assert.equal(history[0].reason,'هماهنگی آزمایشگاه');
+  assert.throws(()=>db.exec("UPDATE witness_schedule_revisions SET reason='x'"));
+});
+test('witness schedule rejects non-witness samples and dates before sampling',t=>{
+  const {service}=fixture(t); service.createSeries(internal);
+  assert.throws(()=>service.scheduleWitness({sampleId:'s1-1',expectedRevision:0,dueAt:'2026-09-15T08:00:00.000Z',reason:'نامعتبر'}),/فقط نمونه شاهد/);
+  assert.throws(()=>service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-08-31T08:00:00.000Z',reason:'نامعتبر'}),/پیش از نمونه‌برداری/);
+});
