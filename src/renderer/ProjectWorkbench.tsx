@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { ConcreteSourceSummary, CustomerSummary, PourContextSummary, PourSummary, ProjectSummary, SampleSummary, SeriesSummary } from '../shared/ipc';
 import { PersianDateTimeInput } from './PersianDateTimeInput';
+import { ProjectManagementSnapshot } from './ProjectManagementSnapshot';
 import { isoToPersianLocal } from './jalali';
 import './project-workbench.css';
 
@@ -71,6 +72,7 @@ export function ProjectWorkbench({onChanged,refreshKey=0,onStartSampling,onOpenR
       <div><small>منتظر تأیید</small><strong>{awaitingReview.length.toLocaleString('fa-IR')}</strong></div>
       <div><small>نتیجه تأییدشده</small><strong>{approved.length.toLocaleString('fa-IR')}</strong></div>
     </div>
+    <ProjectManagementSnapshot projectId={current.id} samples={samples}/>
     <div className="quick-actions dossier-actions">
       <button className="quick-action" onClick={()=>onStartSampling?.(current.id)}><span><strong>نمونه‌برداری جدید</strong><small>ثبت نوبت جدید برای همین پروژه</small></span></button>
       <button className="quick-action" onClick={()=>setTab('samples')}><span><strong>برنامه نمونه‌ها</strong><small>مشاهده موعدهای ۷ و ۲۸ روزه</small></span></button>
