@@ -10,48 +10,8 @@ import { createAttachmentService } from '../application/attachments.js';
 import { createSpecimenPhysicsService } from '../application/specimen-physics.js';
 import { createFreshConcreteService } from '../application/fresh-concrete.js';
 import { createAnalyticsService } from '../application/analytics.js';
-
-const COMPANY_ID = 'tolou-local-company';
-const DEFAULT_COMPANY_NAME = 'شرکت شما';
-const LOCAL_ACTOR = 'کاربر محلی';
-
-export type LaboratoryService = ReturnType<typeof createLaboratoryService>;
-export type ProjectService = ReturnType<typeof createProjectService>;
-export type EngineeringService = ReturnType<typeof createEngineeringService>;
-export type QcPartiesService = ReturnType<typeof createQcPartiesService>;
-export type AttachmentService = ReturnType<typeof createAttachmentService>;
-export type SpecimenPhysicsService = ReturnType<typeof createSpecimenPhysicsService>;
-export type FreshConcreteService = ReturnType<typeof createFreshConcreteService>;
-export type AnalyticsService = ReturnType<typeof createAnalyticsService>;
-
-export interface DatabaseRuntime {
-  db: DatabaseSync;
-  laboratory: LaboratoryService;
-  projects: ProjectService;
-  engineering: EngineeringService;
-  qcParties: QcPartiesService;
-  attachments: AttachmentService;
-  specimenPhysics: SpecimenPhysicsService;
-  freshConcrete: FreshConcreteService;
-  analytics: AnalyticsService;
-}
-
-export function createDatabaseRuntime(): DatabaseRuntime {
-  const userDataPath = app.getPath('userData');
-  const databasePath = join(userDataPath, 'tolou-qc.sqlite');
-  const db = new DatabaseSync(databasePath);
-  migrate(db);
-  const company = db.prepare('SELECT id FROM companies WHERE id=?').get(COMPANY_ID);
-  if (!company) db.prepare('INSERT INTO companies(id,name) VALUES(?,?)').run(COMPANY_ID, DEFAULT_COMPANY_NAME);
-  return {
-    db,
-    laboratory: createLaboratoryService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
-    projects: createProjectService(db, {companyId: COMPANY_ID}),
-    engineering: createEngineeringService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
-    qcParties: createQcPartiesService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
-    attachments: createAttachmentService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR, storageRoot: join(userDataPath, 'attachments')}),
-    specimenPhysics: createSpecimenPhysicsService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
-    freshConcrete: createFreshConcreteService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
-    analytics: createAnalyticsService(db, {companyId: COMPANY_ID}),
-  };
-}
+import { createPourContextService } from '../application/pour-context.js';
+const COMPANY_ID='tolou-local-company',DEFAULT_COMPANY_NAME='شرکت شما',LOCAL_ACTOR='کاربر محلی';
+export type LaboratoryService=ReturnType<typeof createLaboratoryService>;export type ProjectService=ReturnType<typeof createProjectService>;export type EngineeringService=ReturnType<typeof createEngineeringService>;export type QcPartiesService=ReturnType<typeof createQcPartiesService>;export type AttachmentService=ReturnType<typeof createAttachmentService>;export type SpecimenPhysicsService=ReturnType<typeof createSpecimenPhysicsService>;export type FreshConcreteService=ReturnType<typeof createFreshConcreteService>;export type AnalyticsService=ReturnType<typeof createAnalyticsService>;export type PourContextService=ReturnType<typeof createPourContextService>;
+export interface DatabaseRuntime{db:DatabaseSync;laboratory:LaboratoryService;projects:ProjectService;engineering:EngineeringService;qcParties:QcPartiesService;attachments:AttachmentService;specimenPhysics:SpecimenPhysicsService;freshConcrete:FreshConcreteService;analytics:AnalyticsService;pourContext:PourContextService;}
+export function createDatabaseRuntime():DatabaseRuntime{const userDataPath=app.getPath('userData');const databasePath=join(userDataPath,'tolou-qc.sqlite');const db=new DatabaseSync(databasePath);migrate(db);const company=db.prepare('SELECT id FROM companies WHERE id=?').get(COMPANY_ID);if(!company)db.prepare('INSERT INTO companies(id,name) VALUES(?,?)').run(COMPANY_ID,DEFAULT_COMPANY_NAME);return{db,laboratory:createLaboratoryService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}),projects:createProjectService(db,{companyId:COMPANY_ID}),engineering:createEngineeringService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}),qcParties:createQcPartiesService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}),attachments:createAttachmentService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR,storageRoot:join(userDataPath,'attachments')}),specimenPhysics:createSpecimenPhysicsService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}),freshConcrete:createFreshConcreteService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}),analytics:createAnalyticsService(db,{companyId:COMPANY_ID}),pourContext:createPourContextService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR})};}
