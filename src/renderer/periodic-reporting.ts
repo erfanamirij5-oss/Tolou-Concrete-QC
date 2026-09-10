@@ -1,4 +1,4 @@
-import {isValidJalaliDate,toGregorian,toJalali} from './jalali';
+import {isValidJalaliDate,toGregorian,toJalali} from './jalali.ts';
 
 export type PeriodicPreset='month'|'season'|'year';
 export interface PeriodicRange {preset:PeriodicPreset;year:number;index:number|null;startAt:string;endAt:string;label:string;}
