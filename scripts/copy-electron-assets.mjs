@@ -8,6 +8,7 @@ const assets = [
   ['src/infrastructure/sqlite/004-qc-parties-external-results.sql', 'dist-electron/infrastructure/sqlite/004-qc-parties-external-results.sql'],
   ['src/infrastructure/sqlite/005-specimen-physical-measurements.sql', 'dist-electron/infrastructure/sqlite/005-specimen-physical-measurements.sql'],
   ['src/infrastructure/sqlite/006-fresh-concrete-measurements.sql', 'dist-electron/infrastructure/sqlite/006-fresh-concrete-measurements.sql'],
+  ['src/infrastructure/sqlite/007-pour-qc-context.sql', 'dist-electron/infrastructure/sqlite/007-pour-qc-context.sql'],
 ];
 
 for (const [source, target] of assets) {
