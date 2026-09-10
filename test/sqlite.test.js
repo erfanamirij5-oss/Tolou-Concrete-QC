@@ -61,7 +61,10 @@ test('engineering QC migration keeps mix versions company-scoped and immutable a
 });
 test('QC parties and external result events remain company scoped with attachment integrity metadata',t=>{
   const db=fixture(t);addInternal(db);
-  db.exec(`INSERT INTO customers(id,company_id,code,name) VALUES('cust1','c1','C-001','مشتری پایدار');
+  db.exec(`INSERT INTO sampling_series(id,company_id,kind,title,purpose,sampled_at,sampler_name,entered_by)
+    VALUES('s2','c2','internal','آزمایش دوم','بررسی','2026-09-10T08:00:00Z','نمونه‌بردار','ثبت‌کننده');
+    INSERT INTO samples VALUES('sample2','s2',7,'2026-09-17T08:00:00Z');
+    INSERT INTO customers(id,company_id,code,name) VALUES('cust1','c1','C-001','مشتری پایدار');
     INSERT INTO concrete_sources(id,company_id,code,name,source_type) VALUES('src1','c1','SRC-1','بچینگ اصلی','internal');
     INSERT INTO testing_laboratories(id,company_id,code,name,lab_type) VALUES('lab1','c1','LAB-1','آزمایشگاه مرجع','external'),('lab2','c2','LAB-2','آزمایشگاه شرکت دوم','external');`);
   db.prepare(`INSERT INTO external_result_events(id,company_id,sample_id,testing_laboratory_id,external_event_id,strength_mpa,tested_at,received_at,received_by)
@@ -71,7 +74,9 @@ test('QC parties and external result events remain company scoped with attachmen
   assert.equal(db.prepare("SELECT external_event_id FROM external_result_events WHERE id='ext1'").get().external_event_id,'EV-42');
   assert.equal(db.prepare("SELECT size_bytes FROM external_result_attachments WHERE id='att1'").get().size_bytes,2048);
   assert.throws(()=>db.prepare(`INSERT INTO external_result_events(id,company_id,sample_id,testing_laboratory_id,external_event_id,received_at,received_by)
-    VALUES(?,?,?,?,?,?,?)`).run('bad','c1','sample1','lab2','EV-X','2026-09-17T10:00:00.000Z','کاربر'));
+    VALUES(?,?,?,?,?,?,?)`).run('badlab','c1','sample1','lab2','EV-X','2026-09-17T10:00:00.000Z','کاربر'));
+  assert.throws(()=>db.prepare(`INSERT INTO external_result_events(id,company_id,sample_id,testing_laboratory_id,external_event_id,received_at,received_by)
+    VALUES(?,?,?,?,?,?,?)`).run('badsample','c1','sample2','lab1','EV-Y','2026-09-17T10:00:00.000Z','کاربر'));
   assert.throws(()=>db.prepare(`INSERT INTO external_result_attachments(id,external_result_event_id,company_id,file_name,media_type,relative_path,sha256,size_bytes,added_at,added_by)
     VALUES(?,?,?,?,?,?,?,?,?,?)`).run('badatt','ext1','c1','x.pdf','application/pdf','x.pdf','short',1,'2026-09-17T10:05:00.000Z','کاربر'));
 });
