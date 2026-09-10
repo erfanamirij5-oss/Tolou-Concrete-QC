@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {previousPeriodicRange,resolvePeriodicRange} from '../src/renderer/periodic-reporting';
-import {isoToPersianLocal} from '../src/renderer/jalali';
+import {previousPeriodicRange,resolvePeriodicRange} from '../src/renderer/periodic-reporting.ts';
+import {isoToPersianLocal} from '../src/renderer/jalali.ts';
 
 test('season preset resolves exact Jalali quarter boundaries',()=>{const r=resolvePeriodicRange('season',1405,2);assert.match(isoToPersianLocal(r.startAt),/^1405\/04\/01 00:00$/);assert.match(isoToPersianLocal(r.endAt),/^1405\/06\/31 23:59$/);assert.equal(r.label,'تابستان ۱٬۴۰۵');});
 test('winter respects Jalali leap year boundary',()=>{const leap=resolvePeriodicRange('season',1403,4),normal=resolvePeriodicRange('season',1404,4);assert.match(isoToPersianLocal(leap.endAt),/^1403\/12\/30 23:59$/);assert.match(isoToPersianLocal(normal.endAt),/^1404\/12\/29 23:59$/);});
