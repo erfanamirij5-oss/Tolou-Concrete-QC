@@ -30,6 +30,7 @@ export default {
         authors: 'Engineer Erfan Amiri',
         description: 'Tolou Concrete QC — offline Windows concrete quality-control suite',
         setupExe: 'Tolou-Concrete-QC-Setup.exe',
+        setupIcon: windowsIcon,
         noMsi: true
       }
     }
