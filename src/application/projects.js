@@ -9,7 +9,7 @@ const utcTimestamp = (value) => {
   if (!Number.isFinite(instant.getTime()) || instant.toISOString() !== value) throw new Error('تاریخ بتن‌ریزی معتبر نیست');
   return value;
 };
-export function createProjectService(db, {companyId,actor='کاربر محلی'}) {
+export function createProjectService(db, {companyId,actor='کاربر محلی',clock=()=>new Date().toISOString()}) {
   companyId = text(companyId, 'شرکت');actor=text(actor,'کاربر');
   return {
     createProject(input) {const id=text(input?.id,'شناسه پروژه'),name=text(input?.name,'نام پروژه'),customerName=text(input?.customerName,'نام مشتری');const address=typeof input?.address==='string'?input.address.trim():'';if(db.prepare('SELECT id FROM projects WHERE id=?').get(id))throw new Error('این شناسه پروژه قبلاً ثبت شده است');db.prepare('INSERT INTO projects(id,company_id,name,customer_name,address) VALUES(?,?,?,?,?)').run(id,companyId,name,customerName,address);return{id,name,customerName,address};},
@@ -21,6 +21,43 @@ export function createProjectService(db, {companyId,actor='کاربر محلی'}
       db.exec('BEGIN IMMEDIATE');try{db.prepare('INSERT INTO pours(id,company_id,project_id,occurred_at) VALUES(?,?,?,?)').run(id,companyId,projectId,occurredAt);if(customerId||concreteSourceId)db.prepare(`INSERT INTO pour_qc_contexts(pour_id,company_id,project_id,customer_id,concrete_source_id,created_at,created_by) VALUES(?,?,?,?,?,?,?)`).run(id,companyId,projectId,customerId,concreteSourceId,new Date().toISOString(),actor);db.exec('COMMIT');}catch(error){db.exec('ROLLBACK');throw error;}return{id,projectId,occurredAt};
     },
     listPours(projectId){projectId=text(projectId,'پروژه');return db.prepare(`SELECT id,project_id,occurred_at FROM pours WHERE company_id=? AND project_id=? ORDER BY occurred_at DESC,id`).all(companyId,projectId);},
-    dashboard(){const activeProjects=db.prepare('SELECT count(*) AS n FROM projects WHERE company_id=? AND archived=0').get(companyId).n;const totalSeries=db.prepare('SELECT count(*) AS n FROM sampling_series WHERE company_id=?').get(companyId).n;const pendingResults=db.prepare(`SELECT count(*) AS n FROM samples s JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN current_results r ON r.sample_id=s.id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id WHERE ss.company_id=? AND COALESCE(s.due_at,w.due_at) IS NOT NULL AND r.sample_id IS NULL`).get(companyId).n;const draftResults=db.prepare(`SELECT count(*) AS n FROM current_results r JOIN samples s ON s.id=r.sample_id JOIN sampling_series ss ON ss.id=s.series_id WHERE ss.company_id=? AND r.state='draft'`).get(companyId).n;return{activeProjects:Number(activeProjects),totalSeries:Number(totalSeries),pendingResults:Number(pendingResults),draftResults:Number(draftResults)};}
+    dashboard(){
+      const activeProjects=db.prepare('SELECT count(*) AS n FROM projects WHERE company_id=? AND archived=0').get(companyId).n;
+      const totalSeries=db.prepare('SELECT count(*) AS n FROM sampling_series WHERE company_id=?').get(companyId).n;
+      const pendingResults=db.prepare(`SELECT count(*) AS n FROM samples s JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN current_results r ON r.sample_id=s.id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id WHERE ss.company_id=? AND COALESCE(s.due_at,w.due_at) IS NOT NULL AND r.sample_id IS NULL`).get(companyId).n;
+      const draftResults=db.prepare(`SELECT count(*) AS n FROM current_results r JOIN samples s ON s.id=r.sample_id JOIN sampling_series ss ON ss.id=s.series_id WHERE ss.company_id=? AND r.state='draft'`).get(companyId).n;
+      const nowIso=utcTimestamp(clock());
+      const nowMs=Date.parse(nowIso);
+      const rows=db.prepare(`SELECT s.id AS sample_id,s.series_id,s.age_days,COALESCE(s.due_at,w.due_at) AS due_at,ss.sampled_at,ss.kind,ss.project_id,ss.title,p.name AS project_name
+        FROM samples s
+        JOIN sampling_series ss ON ss.id=s.series_id
+        LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
+        LEFT JOIN current_results r ON r.sample_id=s.id
+        LEFT JOIN current_witness_schedules w ON w.sample_id=s.id
+        WHERE ss.company_id=? AND COALESCE(s.due_at,w.due_at) IS NOT NULL AND r.sample_id IS NULL
+        ORDER BY COALESCE(s.due_at,w.due_at) ASC,s.id ASC
+        LIMIT 100`).all(companyId);
+      const dueSchedule=rows.map((row)=>{
+        const dueMs=Date.parse(row.due_at);
+        const remainingMs=dueMs-nowMs;
+        const status=remainingMs<0?'overdue':remainingMs<=48*60*60*1000?'warning':'scheduled';
+        return {
+          sampleId:row.sample_id,
+          seriesId:row.series_id,
+          ageDays:row.age_days,
+          dueAt:row.due_at,
+          sampledAt:row.sampled_at,
+          projectId:row.project_id??null,
+          projectName:row.project_name??null,
+          title:row.title??null,
+          kind:row.kind,
+          remainingHours:remainingMs/3600000,
+          status,
+        };
+      });
+      const dueSoonCount=dueSchedule.filter((item)=>item.status==='warning').length;
+      const overdueCount=dueSchedule.filter((item)=>item.status==='overdue').length;
+      return{activeProjects:Number(activeProjects),totalSeries:Number(totalSeries),pendingResults:Number(pendingResults),draftResults:Number(draftResults),dueSoonCount,overdueCount,dueSchedule};
+    }
   };
 }
