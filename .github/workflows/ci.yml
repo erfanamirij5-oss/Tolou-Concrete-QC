@@ -21,6 +21,22 @@ jobs:
       - run: npm run build
       - name: Build Windows installer
         run: npx electron-forge make --platform=win32 --arch=x64
+      - name: Verify packaged Electron security fuses
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path out -Filter TolouConcreteQC.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged TolouConcreteQC.exe was not found.' }
+          $fuses = (npx electron-fuses read --app $exe.FullName 2>&1 | Out-String)
+          Write-Host $fuses
+          @(
+            'RunAsNode is Disabled',
+            'EnableNodeOptionsEnvironmentVariable is Disabled',
+            'EnableNodeCliInspectArguments is Disabled',
+            'EnableEmbeddedAsarIntegrityValidation is Enabled',
+            'OnlyLoadAppFromAsar is Enabled'
+          ) | ForEach-Object {
+            if (-not $fuses.Contains($_)) { throw "Required Electron fuse state missing: $_" }
+          }
       - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
