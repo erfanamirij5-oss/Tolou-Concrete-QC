@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 
 const migrationFiles = [
   [1, './001-foundation.sql'],
+  [2, './002-engineering-qc.sql'],
 ];
 
 function loadMigrations() {
