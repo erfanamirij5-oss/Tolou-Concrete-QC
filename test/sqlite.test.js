@@ -59,6 +59,22 @@ test('engineering QC migration keeps mix versions company-scoped and immutable a
   db.exec("INSERT INTO mix_design_versions(id,mix_design_id,company_id,revision,created_at,created_by) VALUES('mix2-r1','mix2','c2',1,'2026-09-10T08:00:00.000Z','مهندس')");
   assert.throws(()=>db.prepare(`INSERT INTO pour_qc_specifications(pour_id,company_id,project_id,mix_design_version_id) VALUES(?,?,?,?)`).run('pour1','c1','p1','mix2-r1'));
 });
+test('QC parties and external result events remain company scoped with attachment integrity metadata',t=>{
+  const db=fixture(t);addInternal(db);
+  db.exec(`INSERT INTO customers(id,company_id,code,name) VALUES('cust1','c1','C-001','مشتری پایدار');
+    INSERT INTO concrete_sources(id,company_id,code,name,source_type) VALUES('src1','c1','SRC-1','بچینگ اصلی','internal');
+    INSERT INTO testing_laboratories(id,company_id,code,name,lab_type) VALUES('lab1','c1','LAB-1','آزمایشگاه مرجع','external'),('lab2','c2','LAB-2','آزمایشگاه شرکت دوم','external');`);
+  db.prepare(`INSERT INTO external_result_events(id,company_id,sample_id,testing_laboratory_id,external_event_id,strength_mpa,tested_at,received_at,received_by)
+    VALUES(?,?,?,?,?,?,?,?,?)`).run('ext1','c1','sample1','lab1','EV-42',31.2,'2026-09-17T08:00:00.000Z','2026-09-17T10:00:00.000Z','کاربر');
+  db.prepare(`INSERT INTO external_result_attachments(id,external_result_event_id,company_id,file_name,media_type,relative_path,sha256,size_bytes,added_at,added_by)
+    VALUES(?,?,?,?,?,?,?,?,?,?)`).run('att1','ext1','c1','report.pdf','application/pdf','external/ext1/report.pdf','a'.repeat(64),2048,'2026-09-17T10:05:00.000Z','کاربر');
+  assert.equal(db.prepare("SELECT external_event_id FROM external_result_events WHERE id='ext1'").get().external_event_id,'EV-42');
+  assert.equal(db.prepare("SELECT size_bytes FROM external_result_attachments WHERE id='att1'").get().size_bytes,2048);
+  assert.throws(()=>db.prepare(`INSERT INTO external_result_events(id,company_id,sample_id,testing_laboratory_id,external_event_id,received_at,received_by)
+    VALUES(?,?,?,?,?,?,?)`).run('bad','c1','sample1','lab2','EV-X','2026-09-17T10:00:00.000Z','کاربر'));
+  assert.throws(()=>db.prepare(`INSERT INTO external_result_attachments(id,external_result_event_id,company_id,file_name,media_type,relative_path,sha256,size_bytes,added_at,added_by)
+    VALUES(?,?,?,?,?,?,?,?,?,?)`).run('badatt','ext1','c1','x.pdf','application/pdf','x.pdf','short',1,'2026-09-17T10:05:00.000Z','کاربر'));
+});
 test('reopening a real database retains records and repeated migration is harmless',()=>{
   const dir=mkdtempSync(join(tmpdir(),'tolou-sqlite-'));let db;
   try {
@@ -66,9 +82,10 @@ test('reopening a real database retains records and repeated migration is harmle
     db.prepare('INSERT INTO companies VALUES(?,?)').run('c1','شرکت آزمایشی');db.close();db=null;
     db=new DatabaseSync(file);migrate(db);migrate(db);
     assert.equal(db.prepare('SELECT name FROM companies').get().name,'شرکت آزمایشی');
-    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,3);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,4);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='mix_design_versions'").get().n,1);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='witness_schedule_revisions'").get().n,1);
+    assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='external_result_events'").get().n,1);
   } finally {db?.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('failed migration rolls back tables and migration registration',t=>{
@@ -80,9 +97,9 @@ test('failed migration rolls back tables and migration registration',t=>{
 test('database newer than application is refused without mutation',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   migrate(db);
-  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(4,'future');
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(5,'future');
   assert.throws(()=>migrate(db),/جدیدتر/);
-  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,4);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,5);
 });
 test('migration checksum tampering is detected',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
