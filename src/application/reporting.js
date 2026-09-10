@@ -12,8 +12,12 @@ export function createReportingService(db,{companyId}){
    if(!project)throw new Error('پروژه یافت نشد');
    const company=db.prepare('SELECT id,name FROM companies WHERE id=?').get(companyId);
    const summary=analytics.summary({projectId,startAt:input.startAt??null,endAt:input.endAt??null});
-   const seriesCount=db.prepare('SELECT COUNT(*) AS count FROM sampling_series WHERE company_id=? AND project_id=?').get(companyId,projectId).count;
-   const approvedResultCount=db.prepare(`SELECT COUNT(*) AS count FROM current_results r JOIN samples s ON s.id=r.sample_id JOIN sampling_series ss ON ss.id=s.series_id WHERE ss.company_id=? AND ss.project_id=? AND r.state='approved'`).get(companyId,projectId).count;
+   const {startAt,endAt}=summary.filters;
+   const seriesClauses=['company_id=?','project_id=?'],seriesParams=[companyId,projectId];
+   if(startAt){seriesClauses.push('sampled_at>=?');seriesParams.push(startAt);}
+   if(endAt){seriesClauses.push('sampled_at<=?');seriesParams.push(endAt);}
+   const seriesCount=db.prepare(`SELECT COUNT(*) AS count FROM sampling_series WHERE ${seriesClauses.join(' AND ')}`).get(...seriesParams).count;
+   const approvedResultCount=summary.strength.statistics.count;
    return{
     schema:'tolou-qc-project-report',
     schemaVersion:1,
