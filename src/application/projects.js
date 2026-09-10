@@ -3,6 +3,7 @@ const text = (value, label) => {
   return value.trim();
 };
 const optional=(value)=>typeof value==='string'&&value.trim()?value.trim():null;
+const positiveNumber=(value,label)=>{if(typeof value!=='number'||!Number.isFinite(value)||value<=0)throw new Error(`${label} معتبر نیست`);return value;};
 const utcTimestamp = (value) => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) throw new Error('زمان بتن‌ریزی معتبر نیست');
   const instant = new Date(value);
@@ -12,8 +13,24 @@ const utcTimestamp = (value) => {
 export function createProjectService(db, {companyId,actor='کاربر محلی',clock=()=>new Date().toISOString()}) {
   companyId = text(companyId, 'شرکت');actor=text(actor,'کاربر');
   return {
-    createProject(input) {const id=text(input?.id,'شناسه پروژه'),name=text(input?.name,'نام پروژه'),customerName=text(input?.customerName,'نام مشتری');const address=typeof input?.address==='string'?input.address.trim():'';if(db.prepare('SELECT id FROM projects WHERE id=?').get(id))throw new Error('این شناسه پروژه قبلاً ثبت شده است');db.prepare('INSERT INTO projects(id,company_id,name,customer_name,address) VALUES(?,?,?,?,?)').run(id,companyId,name,customerName,address);return{id,name,customerName,address};},
-    listProjects(){return db.prepare(`SELECT id,name,customer_name,address,archived FROM projects WHERE company_id=? ORDER BY archived,name,id`).all(companyId);},
+    createProject(input) {
+      const id=text(input?.id,'شناسه پروژه'),name=text(input?.name,'نام پروژه'),customerName=text(input?.customerName,'نام مشتری');
+      const address=typeof input?.address==='string'?input.address.trim():'';
+      const characteristicStrengthMpa=positiveNumber(input?.characteristicStrengthMpa,'مقاومت مشخصه پروژه');
+      if(db.prepare('SELECT id FROM projects WHERE id=?').get(id))throw new Error('این شناسه پروژه قبلاً ثبت شده است');
+      const now=clock();
+      db.exec('BEGIN IMMEDIATE');try{
+        db.prepare('INSERT INTO projects(id,company_id,name,customer_name,address) VALUES(?,?,?,?,?)').run(id,companyId,name,customerName,address);
+        db.prepare(`INSERT INTO project_strength_requirements(project_id,company_id,characteristic_strength_mpa,seven_day_reference_ratio,created_at,created_by,updated_at,updated_by)
+          VALUES(?,?,?,0.60,?,?,?,?)`).run(id,companyId,characteristicStrengthMpa,now,actor,now,actor);
+        db.exec('COMMIT');
+      }catch(error){db.exec('ROLLBACK');throw error;}
+      return{id,name,customerName,address,characteristicStrengthMpa,sevenDayReferenceMpa:characteristicStrengthMpa*0.60,twentyEightDayReferenceMpa:characteristicStrengthMpa};
+    },
+    listProjects(){return db.prepare(`SELECT p.id,p.name,p.customer_name,p.address,p.archived,r.characteristic_strength_mpa,r.seven_day_reference_ratio,
+      r.characteristic_strength_mpa*r.seven_day_reference_ratio AS seven_day_reference_mpa,r.characteristic_strength_mpa AS twenty_eight_day_reference_mpa
+      FROM projects p LEFT JOIN project_strength_requirements r ON r.project_id=p.id AND r.company_id=p.company_id
+      WHERE p.company_id=? ORDER BY p.archived,p.name,p.id`).all(companyId);},
     createPour(input) {
       const id=text(input?.id,'شناسه بتن‌ریزی'),projectId=text(input?.projectId,'پروژه'),occurredAt=utcTimestamp(input?.occurredAt),customerId=optional(input?.customerId),concreteSourceId=optional(input?.concreteSourceId);
       const project=db.prepare('SELECT id FROM projects WHERE id=? AND company_id=? AND archived=0').get(projectId,companyId);if(!project)throw new Error('پروژه فعال متعلق به این شرکت یافت نشد');if(db.prepare('SELECT id FROM pours WHERE id=?').get(id))throw new Error('این شناسه بتن‌ریزی قبلاً ثبت شده است');
