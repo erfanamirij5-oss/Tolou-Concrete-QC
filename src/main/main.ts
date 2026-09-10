@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDatabaseRuntime, type DatabaseRuntime } from './database.js';
-import { IPC_CHANNELS, type AppInfo, type ApproveDraftInput, type CreateMixDesignInput, type CreateMixVersionInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type SaveDraftInput, type SavePourSpecificationInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision } from '../shared/ipc.js';
+import { IPC_CHANNELS, type AppInfo, type ApproveDraftInput, type CreateMixDesignInput, type CreateMixVersionInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type RequestCorrectionInput, type SaveDraftInput, type SavePourSpecificationInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision, type VoidResultInput, type VoidResult } from '../shared/ipc.js';
 const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
 function createMainWindow():BrowserWindow{const window=new BrowserWindow({width:1440,height:900,minWidth:1180,minHeight:720,show:false,backgroundColor:'#F5F6F8',title:'طلوع | کنترل کیفیت بتن',autoHideMenuBar:true,webPreferences:{preload:join(__dirname,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});window.once('ready-to-show',()=>window.show());const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)void window.loadURL(devServer);else void window.loadFile(join(__dirname,'../../dist-renderer/index.html'));window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',(event,url)=>{if(!devServer||!url.startsWith(devServer))event.preventDefault();});return window;}
 function safeMessage(error:unknown):string{
@@ -22,6 +22,9 @@ function registerIpc(database:DatabaseRuntime):void{
  ipcMain.handle(IPC_CHANNELS.saveDraft,(_e,input:SaveDraftInput):IpcResult<DraftResult>=>safe(()=>database.laboratory.saveDraft(input) as DraftResult));
  ipcMain.handle(IPC_CHANNELS.listSamples,(_e,limit?:number):IpcResult<SampleSummary[]>=>safe(()=>database.laboratory.listSamples({limit}) as SampleSummary[]));
  ipcMain.handle(IPC_CHANNELS.approveDraft,(_e,input:ApproveDraftInput):IpcResult<ApprovalResult>=>safe(()=>database.laboratory.approveDraft(input) as ApprovalResult));
+ ipcMain.handle(IPC_CHANNELS.requestCorrection,(_e,input:RequestCorrectionInput):IpcResult<DraftResult>=>safe(()=>database.laboratory.requestCorrection(input) as DraftResult));
+ ipcMain.handle(IPC_CHANNELS.voidResult,(_e,input:VoidResultInput):IpcResult<VoidResult>=>safe(()=>database.laboratory.voidResult(input) as VoidResult));
+ ipcMain.handle(IPC_CHANNELS.reviewQueue,(_e,limit?:number):IpcResult<SampleSummary[]>=>safe(()=>database.laboratory.listReviewQueue({limit}) as SampleSummary[]));
  ipcMain.handle(IPC_CHANNELS.resultHistory,(_e,sampleId:string):IpcResult<ResultRevision[]>=>safe(()=>database.laboratory.listResultHistory(sampleId) as ResultRevision[]));
  ipcMain.handle(IPC_CHANNELS.createProject,(_e,input:CreateProjectInput)=>safe(()=>database.projects.createProject(input)));
  ipcMain.handle(IPC_CHANNELS.listProjects,()=>safe(()=>database.projects.listProjects()));
