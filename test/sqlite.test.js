@@ -61,3 +61,22 @@ test('failed migration rolls back tables and migration registration',t=>{
   assert.throws(()=>migrate(db));
   assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name IN ('companies','schema_migrations')").get().n,0);
 });
+test('database newer than application is refused without mutation',t=>{
+  const db=new DatabaseSync(':memory:');t.after(()=>db.close());
+  migrate(db);
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(2,'future');
+  assert.throws(()=>migrate(db),/جدیدتر/);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,2);
+});
+test('migration checksum tampering is detected',t=>{
+  const db=new DatabaseSync(':memory:');t.after(()=>db.close());
+  migrate(db);
+  db.prepare('UPDATE schema_migrations SET checksum=? WHERE version=1').run('tampered');
+  assert.throws(()=>migrate(db),/تعریف نسخه/);
+});
+test('gapped migration history is rejected',t=>{
+  const db=new DatabaseSync(':memory:');t.after(()=>db.close());
+  db.exec('CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL) STRICT');
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(2,'future');
+  assert.throws(()=>migrate(db));
+});
