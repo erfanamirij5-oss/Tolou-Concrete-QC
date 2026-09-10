@@ -14,7 +14,7 @@
   },
   "include": [
     "src/main/**/*.ts",
-    "src/preload/**/*.ts",
+    "src/preload/**/*.cts",
     "src/shared/**/*.ts",
     "src/application/**/*.js",
     "src/domain/**/*.js",
