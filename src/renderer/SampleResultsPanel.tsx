@@ -8,7 +8,7 @@ function stateLabel(state: SampleSummary['state']) {
   return 'در انتظار نتیجه';
 }
 
-export function SampleResultsPanel({onChanged}:{onChanged:()=>void}) {
+export function SampleResultsPanel({onChanged,refreshKey=0}:{onChanged:()=>void;refreshKey?:number}) {
   const [rows,setRows]=useState<SampleSummary[]>([]);
   const [history,setHistory]=useState<ResultRevision[]>([]);
   const [selected,setSelected]=useState('');
@@ -21,7 +21,11 @@ export function SampleResultsPanel({onChanged}:{onChanged:()=>void}) {
     setRows(result.data);
   },[]);
 
-  useEffect(()=>{void refresh().catch((error)=>setMessage(error instanceof Error?error.message:'بارگذاری نمونه‌ها انجام نشد'));},[refresh]);
+  useEffect(()=>{void refresh().catch((error)=>setMessage(error instanceof Error?error.message:'بارگذاری نمونه‌ها انجام نشد'));},[refresh,refreshKey]);
+  useEffect(()=>{
+    if(!selected)return;
+    void window.tolou.resultHistory(selected).then((result)=>{if(result.ok)setHistory(result.data);});
+  },[selected,refreshKey]);
 
   async function openHistory(sampleId:string){
     setSelected(sampleId); setMessage('');
