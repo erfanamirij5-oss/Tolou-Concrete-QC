@@ -6,7 +6,6 @@ const text = (value, label) => {
   return value.trim();
 };
 
-// Canonical internal timestamps; conversion from the Persian calendar belongs to the UI boundary.
 export function utcTimestamp(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) throw new Error('زمان ثبت‌شده معتبر نیست');
   const instant = new Date(value);
@@ -16,17 +15,10 @@ export function utcTimestamp(value) {
 
 function atomic(db, operation) {
   db.exec('BEGIN IMMEDIATE');
-  try {
-    const result = operation();
-    db.exec('COMMIT');
-    return result;
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
-  }
+  try { const result = operation(); db.exec('COMMIT'); return result; }
+  catch (error) { db.exec('ROLLBACK'); throw error; }
 }
 
-/** Main-process service only. actor/companyId must come from the trusted session, never IPC payload. */
 export function createLaboratoryService(db, {companyId, actor, clock = () => new Date().toISOString()}) {
   companyId = text(companyId, 'شرکت');
   actor = text(actor, 'کاربر فعال');
@@ -77,6 +69,41 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
           VALUES(?,?,?,'draft',?,?,?,?,NULL,?)`).run(sampleId,revision,input.strengthMpa,testedAt,testedBy,actor,enteredAt,reason);
         return {sampleId,revision,state:'draft'};
       });
+    },
+
+    approveDraft(input) {
+      const sampleId = text(input?.sampleId, 'شناسه نمونه');
+      if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error('شماره بازنگری معتبر نیست');
+      const enteredAt = utcTimestamp(clock());
+      return atomic(db, () => {
+        const current = db.prepare(`SELECT r.* FROM current_results r JOIN samples s ON s.id=r.sample_id
+          JOIN sampling_series ss ON ss.id=s.series_id WHERE r.sample_id=? AND ss.company_id=?`).get(sampleId,companyId);
+        if (!current) throw new Error('نتیجه‌ای برای تأیید یافت نشد');
+        if (current.revision !== input.expectedRevision) throw new Error('نتیجه تغییر کرده است؛ پرونده را دوباره باز کنید');
+        if (current.state !== 'draft') throw new Error('فقط نتیجه پیش‌نویس قابل تأیید است');
+        const revision = current.revision + 1;
+        const reason = `تأیید بازنگری ${current.revision}`;
+        db.prepare(`INSERT INTO result_revisions(sample_id,revision,strength_mpa,state,tested_at,tested_by,entered_by,entered_at,approved_by,reason)
+          VALUES(?,?,?,'approved',?,?,?,?,?,?)`).run(sampleId,revision,current.strength_mpa,current.tested_at,current.tested_by,actor,enteredAt,actor,reason);
+        return {sampleId,revision,state:'approved'};
+      });
+    },
+
+    listSamples({limit=50}={}) {
+      const safeLimit = Number.isSafeInteger(limit) && limit > 0 && limit <= 200 ? limit : 50;
+      return db.prepare(`SELECT s.id,s.series_id,s.age_days,s.due_at,ss.kind,ss.project_id,ss.pour_id,ss.title,
+        p.name AS project_name,r.revision,r.strength_mpa,r.state,r.tested_at,r.tested_by,r.approved_by
+        FROM samples s JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
+        LEFT JOIN current_results r ON r.sample_id=s.id WHERE ss.company_id=?
+        ORDER BY COALESCE(s.due_at,ss.sampled_at) DESC,s.id DESC LIMIT ?`).all(companyId,safeLimit);
+    },
+
+    listResultHistory(sampleId) {
+      sampleId = text(sampleId,'شناسه نمونه');
+      const owned = db.prepare(`SELECT s.id FROM samples s JOIN sampling_series ss ON ss.id=s.series_id WHERE s.id=? AND ss.company_id=?`).get(sampleId,companyId);
+      if (!owned) throw new Error('نمونه متعلق به این شرکت یافت نشد');
+      return db.prepare(`SELECT sample_id,revision,strength_mpa,state,tested_at,tested_by,entered_by,entered_at,approved_by,reason
+        FROM result_revisions WHERE sample_id=? ORDER BY revision DESC`).all(sampleId);
     },
 
     listSeries({kind, projectId} = {}) {
