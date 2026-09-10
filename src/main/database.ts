@@ -9,6 +9,7 @@ import { createQcPartiesService } from '../application/qc-parties.js';
 import { createAttachmentService } from '../application/attachments.js';
 import { createSpecimenPhysicsService } from '../application/specimen-physics.js';
 import { createFreshConcreteService } from '../application/fresh-concrete.js';
+import { createAnalyticsService } from '../application/analytics.js';
 
 const COMPANY_ID = 'tolou-local-company';
 const DEFAULT_COMPANY_NAME = 'شرکت شما';
@@ -21,6 +22,7 @@ export type QcPartiesService = ReturnType<typeof createQcPartiesService>;
 export type AttachmentService = ReturnType<typeof createAttachmentService>;
 export type SpecimenPhysicsService = ReturnType<typeof createSpecimenPhysicsService>;
 export type FreshConcreteService = ReturnType<typeof createFreshConcreteService>;
+export type AnalyticsService = ReturnType<typeof createAnalyticsService>;
 
 export interface DatabaseRuntime {
   db: DatabaseSync;
@@ -31,6 +33,7 @@ export interface DatabaseRuntime {
   attachments: AttachmentService;
   specimenPhysics: SpecimenPhysicsService;
   freshConcrete: FreshConcreteService;
+  analytics: AnalyticsService;
 }
 
 export function createDatabaseRuntime(): DatabaseRuntime {
@@ -49,5 +52,6 @@ export function createDatabaseRuntime(): DatabaseRuntime {
     attachments: createAttachmentService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR, storageRoot: join(userDataPath, 'attachments')}),
     specimenPhysics: createSpecimenPhysicsService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
     freshConcrete: createFreshConcreteService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
+    analytics: createAnalyticsService(db, {companyId: COMPANY_ID}),
   };
 }
