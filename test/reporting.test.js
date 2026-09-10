@@ -18,7 +18,7 @@ test('project QC report is company scoped and standards neutral',t=>{const{servi
 test('project QC report rejects missing and foreign-company projects',t=>{const{service}=fixture(t);assert.throws(()=>service.projectQc({}),/پروژه/);assert.throws(()=>service.projectQc({projectId:'p2'}),/پروژه یافت نشد/);});
 
 test('project QC report counts honor the report date range and strength time basis',t=>{const{db,service}=fixture(t);db.exec(`
-INSERT INTO sampling_series(id,company_id,kind,project_id,pour_id,sampled_at,sampler_name,entered_by) VALUES('s2','c1','internal','p1','pour1','2026-02-01T08:00:00.000Z','نمونه‌بردار','کاربر');
+INSERT INTO sampling_series(id,company_id,kind,project_id,pour_id,sampled_at,sampler_name,entered_by) VALUES('s2','c1','customer','p1','pour1','2026-02-01T08:00:00.000Z','نمونه‌بردار','کاربر');
 INSERT INTO samples VALUES('a28','s2',28,'2026-03-01T08:00:00.000Z');
 INSERT INTO result_revisions VALUES('a28',1,42,'approved','2026-03-01T08:00:00.000Z','آزمایشگاه','کاربر','2026-03-01T09:00:00.000Z','مهندس',NULL);
 `);const report=service.projectQc({projectId:'p1',startAt:'2026-01-01T00:00:00.000Z',endAt:'2026-01-31T23:59:59.999Z'});assert.equal(report.counts.samplingSeries,1);assert.equal(report.counts.approvedStrengthResults,1);assert.equal(report.analytics.strength.statistics.count,1);assert.equal(report.analytics.strength.statistics.mean,31);});
