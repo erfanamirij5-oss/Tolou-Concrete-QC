@@ -10,7 +10,15 @@ const typeLabel=(value:'internal'|'external')=>value==='internal'?'داخلی':'
 export function QcPartiesWorkbench({onChanged,refreshKey=0}:{onChanged?:()=>void;refreshKey?:number}){
  const [customers,setCustomers]=useState<CustomerSummary[]>([]),[sources,setSources]=useState<ConcreteSourceSummary[]>([]),[labs,setLabs]=useState<TestingLaboratorySummary[]>([]),[samples,setSamples]=useState<SampleSummary[]>([]),[results,setResults]=useState<ExternalResultSummary[]>([]);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false);
- const reload=useCallback(async()=>{const [c,s,l,sm,r]=await Promise.all([window.tolou.listCustomers(),window.tolou.listConcreteSources(),window.tolou.listTestingLaboratories(),window.tolou.listSamples(200),window.tolou.listExternalResults(50)]);for(const x of [c,s,l,sm,r])if(!x.ok)throw new Error(x.message);setCustomers(c.data);setSources(s.data);setLabs(l.data);setSamples(sm.data);setResults(r.data);},[]);
+ const reload=useCallback(async()=>{
+  const [c,s,l,sm,r]=await Promise.all([window.tolou.listCustomers(),window.tolou.listConcreteSources(),window.tolou.listTestingLaboratories(),window.tolou.listSamples(200),window.tolou.listExternalResults(50)]);
+  if(!c.ok)throw new Error(c.message);
+  if(!s.ok)throw new Error(s.message);
+  if(!l.ok)throw new Error(l.message);
+  if(!sm.ok)throw new Error(sm.message);
+  if(!r.ok)throw new Error(r.message);
+  setCustomers(c.data);setSources(s.data);setLabs(l.data);setSamples(sm.data);setResults(r.data);
+ },[]);
  useEffect(()=>{void reload().catch(e=>setMessage(e instanceof Error?e.message:'بارگذاری اطلاعات QC انجام نشد'));},[reload,refreshKey]);
  const submit=async(event:FormEvent<HTMLFormElement>,kind:'customer'|'source'|'lab'|'result')=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form);setBusy(true);setMessage('');try{let res;
   if(kind==='customer')res=await window.tolou.createCustomer({id:String(data.get('id')),code:String(data.get('code')),name:String(data.get('name'))});
