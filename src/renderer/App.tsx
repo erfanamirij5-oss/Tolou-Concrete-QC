@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { LaboratoryWorkbench } from './LaboratoryWorkbench';
 
 type Metric = { label: string; value: string; hint: string; tone?: 'ok' | 'warn' | 'danger' };
 type SampleRow = { id: string; project: string; age: string; strength: string; status: 'تأیید' | 'هشدار' | 'در انتظار' };
@@ -39,14 +40,7 @@ export function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar glass glass--dark" aria-label="ناوبری اصلی">
-        <div className="brand-block">
-          <div className="brand-mark" aria-hidden="true">T</div>
-          <div>
-            <strong>طلوع</strong>
-            <span>کنترل کیفیت بتن</span>
-          </div>
-        </div>
-
+        <div className="brand-block"><div className="brand-mark" aria-hidden="true">T</div><div><strong>طلوع</strong><span>کنترل کیفیت بتن</span></div></div>
         <nav className="nav-stack">
           <button className="nav-item nav-item--active"><span>◆</span>داشبورد</button>
           <button className="nav-item"><span>◫</span>نمونه‌ها و نتایج</button>
@@ -55,70 +49,35 @@ export function App() {
           <button className="nav-item"><span>◉</span>تحلیل و هشدارها</button>
           <button className="nav-item"><span>▤</span>گزارش‌ها</button>
         </nav>
-
-        <div className="sidebar-footer">
-          <div className="connection"><span className={`dot dot--${health}`} />{health === 'ok' ? 'سامانه آماده است' : health === 'error' ? 'خطای ارتباط داخلی' : 'در حال بررسی'}</div>
-          <button className="nav-item"><span>⚙</span>تنظیمات</button>
-        </div>
+        <div className="sidebar-footer"><div className="connection"><span className={`dot dot--${health}`} />{health === 'ok' ? 'دیتابیس و سامانه آماده است' : health === 'error' ? 'خطای ارتباط داخلی' : 'در حال بررسی'}</div><button className="nav-item"><span>⚙</span>تنظیمات</button></div>
       </aside>
 
       <section className="workspace">
         <header className="topbar glass">
-          <div>
-            <p className="eyebrow">آزمایشگاه مرکزی</p>
-            <h1>داشبورد کنترل کیفیت</h1>
-          </div>
-          <div className="topbar-actions">
-            <div className="date-chip">{persianDate}</div>
-            <button className="icon-button" aria-label="اعلان‌ها">◌<span className="notification-badge">۲</span></button>
-            <button className="avatar-button" aria-label="حساب کاربری">ا.ا</button>
-          </div>
+          <div><p className="eyebrow">آزمایشگاه مرکزی</p><h1>داشبورد کنترل کیفیت</h1></div>
+          <div className="topbar-actions"><div className="date-chip">{persianDate}</div><button className="icon-button" aria-label="اعلان‌ها">◌<span className="notification-badge">۲</span></button><button className="avatar-button" aria-label="حساب کاربری">ا.ا</button></div>
         </header>
 
         <div className="content-grid">
           <section className="hero glass">
-            <div>
-              <p className="eyebrow eyebrow--accent">مرکز عملیات امروز</p>
-              <h2>کنترل سریع، تصمیم مهندسی، سابقه قابل ردیابی.</h2>
-              <p>ثبت سری نمونه، ورود نتایج و هشدارهای داخلی در یک جریان کاری یکپارچه و آفلاین.</p>
-              <div className="hero-actions">
-                <button className="primary-button">ثبت سری نمونه جدید</button>
-                <button className="secondary-button">ثبت نتیجه آزمون</button>
-              </div>
-            </div>
+            <div><p className="eyebrow eyebrow--accent">مرکز عملیات امروز</p><h2>کنترل سریع، تصمیم مهندسی، سابقه قابل ردیابی.</h2><p>ثبت سری نمونه، ورود نتایج و هشدارهای داخلی در یک جریان کاری یکپارچه و آفلاین.</p><div className="hero-actions"><button className="primary-button">ثبت سری نمونه جدید</button><button className="secondary-button">ثبت نتیجه آزمون</button></div></div>
             <div className="hero-orbit" aria-hidden="true"><div /><div /><span>QC</span></div>
           </section>
 
           <section className="metrics-grid" aria-label="شاخص‌های امروز">
-            {metrics.map((metric) => (
-              <article className="metric-card glass" key={metric.label}>
-                <div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone ?? 'neutral'}`} /></div>
-                <strong>{metric.value}</strong>
-                <small>{metric.hint}</small>
-              </article>
-            ))}
+            {metrics.map((metric) => <article className="metric-card glass" key={metric.label}><div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone ?? 'neutral'}`} /></div><strong>{metric.value}</strong><small>{metric.hint}</small></article>)}
           </section>
 
+          <LaboratoryWorkbench />
+
           <section className="panel glass panel--wide">
-            <div className="panel-heading">
-              <div><p className="eyebrow">آخرین فعالیت‌ها</p><h3>نمونه‌ها و نتایج اخیر</h3></div>
-              <button className="text-button">مشاهده همه</button>
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead><tr><th>شناسه سری</th><th>پروژه</th><th>سن آزمون</th><th>مقاومت</th><th>وضعیت</th></tr></thead>
-                <tbody>{rows.map((row) => <tr key={row.id}><td className="mono">{row.id}</td><td>{row.project}</td><td>{row.age}</td><td>{row.strength}</td><td><StatusPill status={row.status} /></td></tr>)}</tbody>
-              </table>
-            </div>
+            <div className="panel-heading"><div><p className="eyebrow">آخرین فعالیت‌ها</p><h3>نمونه‌ها و نتایج اخیر</h3></div><button className="text-button">مشاهده همه</button></div>
+            <div className="table-wrap"><table><thead><tr><th>شناسه سری</th><th>پروژه</th><th>سن آزمون</th><th>مقاومت</th><th>وضعیت</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td className="mono">{row.id}</td><td>{row.project}</td><td>{row.age}</td><td>{row.strength}</td><td><StatusPill status={row.status} /></td></tr>)}</tbody></table></div>
           </section>
 
           <section className="panel glass">
             <div className="panel-heading"><div><p className="eyebrow">صف اقدام</p><h3>موارد نیازمند توجه</h3></div><span className="count-badge">۴</span></div>
-            <div className="action-list">
-              <button><span className="action-icon action-icon--danger">!</span><div><strong>۲ نتیجه زیر آستانه هشدار</strong><small>بازبینی کنترل داخلی</small></div><b>←</b></button>
-              <button><span className="action-icon action-icon--warn">◷</span><div><strong>۹ آزمون سررسید امروز</strong><small>۳ پروژه مشتری</small></div><b>←</b></button>
-              <button><span className="action-icon">✓</span><div><strong>۳ گزارش آماده صدور</strong><small>نیازمند تأیید مدیر</small></div><b>←</b></button>
-            </div>
+            <div className="action-list"><button><span className="action-icon action-icon--danger">!</span><div><strong>۲ نتیجه زیر آستانه هشدار</strong><small>بازبینی کنترل داخلی</small></div><b>←</b></button><button><span className="action-icon action-icon--warn">◷</span><div><strong>۹ آزمون سررسید امروز</strong><small>۳ پروژه مشتری</small></div><b>←</b></button><button><span className="action-icon">✓</span><div><strong>۳ گزارش آماده صدور</strong><small>نیازمند تأیید مدیر</small></div><b>←</b></button></div>
           </section>
         </div>
       </section>
