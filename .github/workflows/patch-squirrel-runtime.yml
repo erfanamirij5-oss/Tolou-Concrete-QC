@@ -1,0 +1,34 @@
+name: Patch Squirrel runtime handling
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-squirrel-runtime.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/windows-desktop-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Patch Windows Squirrel runtime integration
+        shell: pwsh
+        run: |
+          node -e "const fs=require('fs');const p='src/main/main.ts';let s=fs.readFileSync(p,'utf8');s=s.replace(\"import { fileURLToPath } from 'node:url';\",\"import { fileURLToPath } from 'node:url';\\nimport { createRequire } from 'node:module';\");s=s.replace(\"const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;\",\"const require=createRequire(import.meta.url);\\nconst handledSquirrelEvent=process.platform==='win32'&&Boolean(require('electron-squirrel-startup'));\\nif(handledSquirrelEvent)app.quit();\\nif(process.platform==='win32')app.setAppUserModelId('com.squirrel.tolou_concrete_qc.TolouConcreteQC');\\nconst __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;\");fs.writeFileSync(p,s)"
+      - name: Verify patch and typecheck
+        shell: pwsh
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+      - name: Commit runtime integration
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/main/main.ts
+          git commit -m 'Handle Squirrel Windows lifecycle and app identity'
+          git push origin HEAD:feature/windows-desktop-foundation
