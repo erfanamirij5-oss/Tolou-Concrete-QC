@@ -1,5 +1,13 @@
+@font-face {
+  font-family: 'Vazir';
+  src: url('./assets/fonts/Vazir-Medium.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
-  font-family: Vazir, "Segoe UI", Tahoma, sans-serif;
+  font-family: 'Vazir', sans-serif;
   color: #101c30;
   background: #edf1f5;
   font-synthesis: none;
@@ -19,8 +27,9 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { margin: 0; min-width: 100%; min-height: 100%; }
+html, body, #root { margin: 0; min-width: 100%; min-height: 100%; font-family: 'Vazir', sans-serif; }
 body { min-height: 100vh; overflow: hidden; }
+button, input, select, textarea, table, th, td, label, option { font-family: 'Vazir', sans-serif; }
 button, input, select, textarea { font: inherit; }
 button { border: 0; cursor: pointer; }
 button:focus-visible { outline: 3px solid rgba(217, 119, 50, .30); outline-offset: 2px; }
@@ -96,7 +105,7 @@ th, td { text-align: right; padding: 12px 13px; border-bottom: 1px solid rgba(52
 th { color: #69778a; font-size: 11px; background: rgba(220,226,234,.35); }
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: rgba(255,255,255,.62); }
-.mono { direction: ltr; text-align: right; font-family: "Segoe UI", monospace; color: #495a70; }
+.mono { direction: ltr; text-align: right; font-family: 'Vazir', sans-serif; color: #495a70; }
 .status { display: inline-flex; min-width: 58px; justify-content: center; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
 .status--ok { color: #1f6547; background: #e3f2e9; }.status--danger { color: #9e3838; background: #f8e5e5; }.status--pending { color: #735f2d; background: #f4eddc; }
 .table-subline { display:block; margin-top:4px; color:var(--titanium); font-size:10px; }
@@ -125,30 +134,28 @@ tbody tr:hover { background: rgba(255,255,255,.62); }
 .due-row span { min-width:0; }
 .due-row strong,.due-row small { display:block; }
 .due-row strong { font-size:12px; }
-.due-row small { margin-top:4px; color:var(--titanium); font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.due-status { justify-self:end; min-width:105px; text-align:center; border-radius:999px; padding:7px 9px; font-size:10px; font-weight:800; }
-.due-row--warning { border-color:rgba(185,122,29,.28); background:rgba(244,237,220,.68); }
-.due-row--warning .due-status { color:#735f2d; background:#f4eddc; }
-.due-row--overdue { border-color:rgba(185,73,73,.28); background:rgba(248,229,229,.72); }
-.due-row--overdue .due-status { color:#9e3838; background:#f8e5e5; }
-.due-row--scheduled .due-status { color:#495a70; background:#e7ecf1; }
-.due-empty { padding:18px; border:1px dashed rgba(52,70,93,.18); border-radius:14px; color:var(--titanium); font-size:12px; text-align:center; }
+.due-row small { margin-top:4px; color:var(--titanium); font-size:10px; overflow:hidden; text-overflow:ellipsis; }
+.due-row--warning { border-color:rgba(185,122,29,.28); background:rgba(246,237,221,.55); }
+.due-row--overdue { border-color:rgba(185,73,73,.25); background:rgba(248,229,229,.55); }
+.due-state { justify-self:start; min-width:86px; padding:6px 9px; border-radius:999px; text-align:center; font-size:10px; font-weight:700; color:var(--steel); background:rgba(52,70,93,.08); }
+.due-row--warning .due-state { color:#735f2d; background:#f4eddc; }
+.due-row--overdue .due-state { color:#9e3838; background:#f8e5e5; }
+.empty-state { padding:18px; text-align:center; color:var(--titanium); border:1px dashed var(--line); border-radius:14px; }
 
 @media (max-width: 1240px) {
   .app-shell { grid-template-columns: minmax(0, 1fr) 230px; }
   .content-grid { grid-template-columns: 1fr; }
-  .hero-orbit { width: 150px; height: 150px; flex-basis: 150px; }
   .metrics-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .review-action { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .hero-orbit { display:none; }
   .due-row { grid-template-columns:1fr; }
-  .due-status { justify-self:start; }
+  .due-state { justify-self:stretch; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+  *, *::before, *::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .glass { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .glass--dark { background: var(--navy); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .glass { background:#f5f6f8; backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .glass--dark { background:#101c30; }
 }
