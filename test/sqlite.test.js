@@ -45,6 +45,20 @@ test('approved result corrections preserve old values and require reasons and se
   assert.throws(()=>db.exec('UPDATE result_revisions SET strength_mpa=20'));
   assert.throws(()=>db.exec('DELETE FROM result_revisions'));
 });
+test('engineering QC migration keeps mix versions company-scoped and immutable after use',t=>{
+  const db=fixture(t);
+  db.exec(`INSERT INTO mix_designs(id,company_id,code,title) VALUES('mix1','c1','M-35','طرح ۳۵');
+    INSERT INTO mix_design_versions(id,mix_design_id,company_id,revision,target_strength_mpa,cement_kg_m3,water_kg_m3,created_at,created_by)
+    VALUES('mix1-r1','mix1','c1',1,35,380,170,'2026-09-10T08:00:00.000Z','مهندس');`);
+  db.prepare(`INSERT INTO pour_qc_specifications(pour_id,company_id,project_id,mix_design_version_id,element_name,specified_strength_mpa,target_slump_mm)
+    VALUES(?,?,?,?,?,?,?)`).run('pour1','c1','p1','mix1-r1','ستون',35,120);
+  assert.equal(db.prepare("SELECT specified_strength_mpa FROM pour_qc_specifications WHERE pour_id='pour1'").get().specified_strength_mpa,35);
+  assert.throws(()=>db.exec("UPDATE mix_design_versions SET cement_kg_m3=390 WHERE id='mix1-r1'"));
+  assert.throws(()=>db.exec("DELETE FROM mix_design_versions WHERE id='mix1-r1'"));
+  db.exec("INSERT INTO mix_designs(id,company_id,code,title) VALUES('mix2','c2','M-40','طرح شرکت دوم')");
+  db.exec("INSERT INTO mix_design_versions(id,mix_design_id,company_id,revision,created_at,created_by) VALUES('mix2-r1','mix2','c2',1,'2026-09-10T08:00:00.000Z','مهندس')");
+  assert.throws(()=>db.prepare(`INSERT INTO pour_qc_specifications(pour_id,company_id,project_id,mix_design_version_id) VALUES(?,?,?,?)`).run('pour1','c1','p1','mix2-r1'));
+});
 test('reopening a real database retains records and repeated migration is harmless',()=>{
   const dir=mkdtempSync(join(tmpdir(),'tolou-sqlite-'));let db;
   try {
@@ -52,7 +66,8 @@ test('reopening a real database retains records and repeated migration is harmle
     db.prepare('INSERT INTO companies VALUES(?,?)').run('c1','شرکت آزمایشی');db.close();db=null;
     db=new DatabaseSync(file);migrate(db);migrate(db);
     assert.equal(db.prepare('SELECT name FROM companies').get().name,'شرکت آزمایشی');
-    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,1);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,2);
+    assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='mix_design_versions'").get().n,1);
   } finally {db?.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('failed migration rolls back tables and migration registration',t=>{
@@ -64,9 +79,9 @@ test('failed migration rolls back tables and migration registration',t=>{
 test('database newer than application is refused without mutation',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   migrate(db);
-  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(2,'future');
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(3,'future');
   assert.throws(()=>migrate(db),/جدیدتر/);
-  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,2);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,3);
 });
 test('migration checksum tampering is detected',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
