@@ -1,6 +1,7 @@
 export const IPC_CHANNELS = {
   appInfo:'app:info', health:'app:health', createSeries:'laboratory:create-series', listSeries:'laboratory:list-series', saveDraft:'laboratory:save-draft',
   listSamples:'laboratory:list-samples', approveDraft:'laboratory:approve-draft', requestCorrection:'laboratory:request-correction', voidResult:'laboratory:void-result', reviewQueue:'laboratory:review-queue', resultHistory:'laboratory:result-history',
+  scheduleWitness:'laboratory:schedule-witness', witnessScheduleHistory:'laboratory:witness-schedule-history',
   createProject:'projects:create', listProjects:'projects:list', createPour:'pours:create', listPours:'pours:list', dashboard:'dashboard:summary',
   createMixDesign:'engineering:create-mix-design', listMixDesigns:'engineering:list-mix-designs', createMixVersion:'engineering:create-mix-version', listMixVersions:'engineering:list-mix-versions',
   savePourSpecification:'engineering:save-pour-specification', getPourSpecification:'engineering:get-pour-specification',
@@ -17,10 +18,13 @@ export interface SaveDraftInput {sampleId:string;expectedRevision:number;strengt
 export interface ApproveDraftInput {sampleId:string;expectedRevision:number;}
 export interface RequestCorrectionInput {sampleId:string;expectedRevision:number;strengthMpa:number;testedAt:string;testedBy:string;reason:string;}
 export interface VoidResultInput {sampleId:string;expectedRevision:number;reason:string;}
+export interface ScheduleWitnessInput {sampleId:string;expectedRevision:number;dueAt:string;reason:string;}
+export interface WitnessScheduleResult {sampleId:string;revision:number;dueAt:string;}
+export interface WitnessScheduleRevision {sample_id:string;revision:number;due_at:string;reason:string;entered_by:string;entered_at:string;}
 export interface DraftResult {sampleId:string;revision:number;state:'draft';}
 export interface ApprovalResult {sampleId:string;revision:number;state:'approved';}
 export interface VoidResult {sampleId:string;revision:number;state:'void';}
-export interface SampleSummary {id:string;series_id:string;age_days:number|null;due_at:string|null;kind:LaboratoryKind;project_id:string|null;pour_id:string|null;title:string|null;project_name:string|null;revision:number|null;strength_mpa:number|null;state:ResultState|null;tested_at:string|null;tested_by:string|null;approved_by:string|null;reason?:string|null;}
+export interface SampleSummary {id:string;series_id:string;age_days:number|null;due_at:string|null;witness_schedule_revision?:number|null;kind:LaboratoryKind;project_id:string|null;pour_id:string|null;title:string|null;project_name:string|null;revision:number|null;strength_mpa:number|null;state:ResultState|null;tested_at:string|null;tested_by:string|null;approved_by:string|null;reason?:string|null;}
 export interface ResultRevision {sample_id:string;revision:number;strength_mpa:number|null;state:ResultState;tested_at:string;tested_by:string;entered_by:string;entered_at:string;approved_by:string|null;reason:string|null;}
 export interface CreateProjectInput {id:string;name:string;customerName:string;address?:string;}
 export interface ProjectSummary {id:string;name:string;customer_name:string;address:string;archived:number;}
@@ -41,6 +45,7 @@ export interface TolouBridge {
  getAppInfo():Promise<AppInfo>; health():Promise<HealthStatus>;
  createSeries(input:CreateSeriesInput):Promise<IpcResult<CreateSeriesResult>>; listSeries(kind:LaboratoryKind,projectId?:string):Promise<IpcResult<SeriesSummary[]>>; saveDraft(input:SaveDraftInput):Promise<IpcResult<DraftResult>>;
  listSamples(limit?:number):Promise<IpcResult<SampleSummary[]>>; approveDraft(input:ApproveDraftInput):Promise<IpcResult<ApprovalResult>>; requestCorrection(input:RequestCorrectionInput):Promise<IpcResult<DraftResult>>; voidResult(input:VoidResultInput):Promise<IpcResult<VoidResult>>; reviewQueue(limit?:number):Promise<IpcResult<SampleSummary[]>>; resultHistory(sampleId:string):Promise<IpcResult<ResultRevision[]>>;
+ scheduleWitness(input:ScheduleWitnessInput):Promise<IpcResult<WitnessScheduleResult>>; witnessScheduleHistory(sampleId:string):Promise<IpcResult<WitnessScheduleRevision[]>>;
  createProject(input:CreateProjectInput):Promise<IpcResult<{id:string}>>; listProjects():Promise<IpcResult<ProjectSummary[]>>;
  createPour(input:CreatePourInput):Promise<IpcResult<{id:string}>>; listPours(projectId:string):Promise<IpcResult<PourSummary[]>>; dashboard():Promise<IpcResult<DashboardSummary>>;
  createMixDesign(input:CreateMixDesignInput):Promise<IpcResult<{id:string;code:string;title:string}>>; listMixDesigns():Promise<IpcResult<MixDesignSummary[]>>;
