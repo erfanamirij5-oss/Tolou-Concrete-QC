@@ -10,6 +10,7 @@ export const IPC_CHANNELS = {
   addExternalAttachment:'attachments:add-external-result', listExternalAttachments:'attachments:list-external-result',
   saveSpecimenPhysics:'specimen-physics:save', getSpecimenPhysics:'specimen-physics:get', listSpecimenPhysics:'specimen-physics:list', specimenPhysicsHistory:'specimen-physics:history',
   saveFreshConcrete:'fresh-concrete:save', getFreshConcrete:'fresh-concrete:get', freshConcreteHistory:'fresh-concrete:history',
+  analyticsSummary:'analytics:summary',
 } as const;
 export interface AppInfo { name:string; version:string; platform:string; locale:string; }
 export interface HealthStatus { ok:true; timestamp:string; database:'ready'; }
@@ -59,6 +60,13 @@ export interface SavedSpecimenPhysics {sampleId:string;revision:number;shape:Spe
 export interface SaveFreshConcreteInput {seriesId:string;expectedRevision:number;slumpMm?:number|null;concreteTemperatureC?:number|null;measuredAt:string;reason?:string;}
 export interface FreshConcreteSummary {series_id:string;revision:number;slump_mm:number|null;concrete_temperature_c:number|null;measured_at:string;reason:string|null;entered_by:string;entered_at:string;}
 export interface SavedFreshConcrete {seriesId:string;revision:number;slumpMm:number|null;concreteTemperatureC:number|null;measuredAt:string;}
+export interface AnalyticsFilter {projectId?:string|null;startAt?:string|null;endAt?:string|null;}
+export interface AnalyticsStatistics {count:number;mean:number|null;sampleSd:number|null;cvPercent:number|null;min:number|null;max:number|null;}
+export interface AnalyticsTrendPoint {at:string;value:number;seriesId:string|null;sampleId:string|null;projectId:string|null;ageDays?:number|null;}
+export interface AnalyticsMetric {name:string;unit:string;statistics:AnalyticsStatistics;trend:AnalyticsTrendPoint[];}
+export interface StrengthAnalyticsMetric extends AnalyticsMetric {approvedOnly:true;byAge:Record<string,AnalyticsStatistics>;}
+export interface DensityAnalyticsMetric extends AnalyticsMetric {timeBasis:'sample-test-else-physical-entry';}
+export interface AnalyticsSummary {filters:{projectId:string|null;startAt:string|null;endAt:string|null};strength:StrengthAnalyticsMetric;slump:AnalyticsMetric;concreteTemperature:AnalyticsMetric;hardenedDensity:DensityAnalyticsMetric;}
 export type IpcResult<T>={ok:true;data:T}|{ok:false;message:string};
 export interface TolouBridge {
  getAppInfo():Promise<AppInfo>; health():Promise<HealthStatus>;
@@ -77,4 +85,5 @@ export interface TolouBridge {
  addExternalAttachment(eventId:string):Promise<IpcResult<AddAttachmentResult>>; listExternalAttachments(eventId:string):Promise<IpcResult<AttachmentSummary[]>>;
  saveSpecimenPhysics(input:SaveSpecimenPhysicsInput):Promise<IpcResult<SavedSpecimenPhysics>>; getSpecimenPhysics(sampleId:string):Promise<IpcResult<SpecimenPhysicsSummary|null>>; listSpecimenPhysics(limit?:number):Promise<IpcResult<SpecimenPhysicsSummary[]>>; specimenPhysicsHistory(sampleId:string):Promise<IpcResult<SpecimenPhysicsSummary[]>>;
  saveFreshConcrete(input:SaveFreshConcreteInput):Promise<IpcResult<SavedFreshConcrete>>; getFreshConcrete(seriesId:string):Promise<IpcResult<FreshConcreteSummary|null>>; freshConcreteHistory(seriesId:string):Promise<IpcResult<FreshConcreteSummary[]>>;
+ analyticsSummary(input?:AnalyticsFilter):Promise<IpcResult<AnalyticsSummary>>;
 }
