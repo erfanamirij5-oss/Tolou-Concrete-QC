@@ -1,9 +1,13 @@
+import path from 'node:path';
+
+const windowsIcon = path.resolve('assets', 'icons', 'Tolou-Concrete-QC.ico');
+
 export default {
   packagerConfig: {
     asar: true,
     name: 'Tolou Concrete QC',
     executableName: 'TolouConcreteQC',
-    icon: 'assets/icons/Tolou-Concrete-QC.ico',
+    icon: windowsIcon,
     prune: true,
     ignore: [
       /^\/\.git($|\/)/,
@@ -24,7 +28,7 @@ export default {
         authors: 'Engineer Erfan Amiri',
         description: 'Tolou Concrete QC — offline Windows concrete quality-control suite',
         setupExe: 'Tolou-Concrete-QC-Setup.exe',
-        setupIcon: 'assets/icons/Tolou-Concrete-QC.ico',
+        setupIcon: windowsIcon,
         noMsi: true
       }
     }
