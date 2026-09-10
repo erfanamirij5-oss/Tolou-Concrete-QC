@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tolou QC License Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">TOLOU ENGINEERING SOFTWARE</p>
+        <h1>Tolou QC License Manager</h1>
+        <p class="subtitle">صدور و مدیریت لایسنس آفلاین نرم‌افزار Tolou Concrete QC</p>
+      </div>
+      <div class="status-card">
+        <span id="keyDot" class="dot"></span>
+        <div><strong id="keyStatus">در حال بررسی کلید…</strong><small id="fingerprint"></small></div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="panel issue-panel">
+        <div class="panel-head">
+          <div><span class="step">01</span><h2>صدور لایسنس</h2></div>
+          <button id="importKeyBtn" class="secondary">ورود کلید خصوصی</button>
+        </div>
+
+        <form id="licenseForm">
+          <div class="row two">
+            <label>نام مشتری<input id="customerName" required maxlength="100" placeholder="نام شخص مسئول" /></label>
+            <label>شرکت / مجموعه<input id="customerCompany" maxlength="120" placeholder="نام شرکت یا آزمایشگاه" /></label>
+          </div>
+          <label>Machine Code<input id="machineCode" required maxlength="128" spellcheck="false" placeholder="کد دستگاه دریافتی از نرم‌افزار مشتری" /></label>
+          <div class="row two">
+            <label>نوع لایسنس<select id="licenseType"><option value="subscription">اشتراکی</option><option value="trial">آزمایشی</option><option value="perpetual">دائمی</option></select></label>
+            <label id="expiryWrap">تاریخ پایان اعتبار<input id="expiresOn" type="date" /></label>
+          </div>
+          <label>یادداشت<textarea id="notes" maxlength="500" rows="3" placeholder="توضیحات داخلی اختیاری"></textarea></label>
+          <div class="features"><span>امکانات فعال:</span><b>QC Core</b><b>Analytics</b><b>Reporting</b><b>PDF</b><b>Excel</b></div>
+          <button id="issueBtn" class="primary" type="submit">ساخت و ذخیره فایل لایسنس</button>
+          <p id="message" class="message"></p>
+        </form>
+      </article>
+
+      <article class="panel history-panel">
+        <div class="panel-head"><div><span class="step">02</span><h2>تاریخچه صدور</h2></div><span id="licenseCount" class="count">0</span></div>
+        <div id="emptyState" class="empty">هنوز لایسنسی صادر نشده است.</div>
+        <div id="history" class="history"></div>
+      </article>
+    </section>
+
+    <footer><span>Offline • Ed25519 Signed • Machine Bound</span><span>Product Owner: Engineer Erfan Amiri</span></footer>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>
