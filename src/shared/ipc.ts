@@ -9,6 +9,7 @@ export const IPC_CHANNELS = {
   createTestingLaboratory:'qc-parties:create-testing-laboratory', listTestingLaboratories:'qc-parties:list-testing-laboratories', registerExternalResult:'qc-parties:register-external-result', listExternalResults:'qc-parties:list-external-results',
   addExternalAttachment:'attachments:add-external-result', listExternalAttachments:'attachments:list-external-result',
   saveSpecimenPhysics:'specimen-physics:save', getSpecimenPhysics:'specimen-physics:get', listSpecimenPhysics:'specimen-physics:list', specimenPhysicsHistory:'specimen-physics:history',
+  saveFreshConcrete:'fresh-concrete:save', getFreshConcrete:'fresh-concrete:get', freshConcreteHistory:'fresh-concrete:history',
 } as const;
 export interface AppInfo { name:string; version:string; platform:string; locale:string; }
 export interface HealthStatus { ok:true; timestamp:string; database:'ready'; }
@@ -55,6 +56,9 @@ export type SpecimenShape='cube'|'cylinder';
 export interface SaveSpecimenPhysicsInput {sampleId:string;expectedRevision:number;shape:SpecimenShape;lengthMm?:number|null;widthMm?:number|null;heightMm:number;diameterMm?:number|null;massKg:number;reason?:string;}
 export interface SpecimenPhysicsSummary {sample_id:string;revision:number;shape:SpecimenShape;length_mm:number|null;width_mm:number|null;height_mm:number;diameter_mm:number|null;mass_kg:number;volume_m3:number;density_kg_m3:number;reason:string|null;entered_by:string;entered_at:string;}
 export interface SavedSpecimenPhysics {sampleId:string;revision:number;shape:SpecimenShape;lengthMm:number|null;widthMm:number|null;heightMm:number;diameterMm:number|null;massKg:number;volumeM3:number;densityKgM3:number;}
+export interface SaveFreshConcreteInput {seriesId:string;expectedRevision:number;slumpMm?:number|null;concreteTemperatureC?:number|null;measuredAt:string;reason?:string;}
+export interface FreshConcreteSummary {series_id:string;revision:number;slump_mm:number|null;concrete_temperature_c:number|null;measured_at:string;reason:string|null;entered_by:string;entered_at:string;}
+export interface SavedFreshConcrete {seriesId:string;revision:number;slumpMm:number|null;concreteTemperatureC:number|null;measuredAt:string;}
 export type IpcResult<T>={ok:true;data:T}|{ok:false;message:string};
 export interface TolouBridge {
  getAppInfo():Promise<AppInfo>; health():Promise<HealthStatus>;
@@ -72,4 +76,5 @@ export interface TolouBridge {
  registerExternalResult(input:RegisterExternalResultInput):Promise<IpcResult<{id:string;sampleId:string;externalEventId:string}>>; listExternalResults(limit?:number):Promise<IpcResult<ExternalResultSummary[]>>;
  addExternalAttachment(eventId:string):Promise<IpcResult<AddAttachmentResult>>; listExternalAttachments(eventId:string):Promise<IpcResult<AttachmentSummary[]>>;
  saveSpecimenPhysics(input:SaveSpecimenPhysicsInput):Promise<IpcResult<SavedSpecimenPhysics>>; getSpecimenPhysics(sampleId:string):Promise<IpcResult<SpecimenPhysicsSummary|null>>; listSpecimenPhysics(limit?:number):Promise<IpcResult<SpecimenPhysicsSummary[]>>; specimenPhysicsHistory(sampleId:string):Promise<IpcResult<SpecimenPhysicsSummary[]>>;
+ saveFreshConcrete(input:SaveFreshConcreteInput):Promise<IpcResult<SavedFreshConcrete>>; getFreshConcrete(seriesId:string):Promise<IpcResult<FreshConcreteSummary|null>>; freshConcreteHistory(seriesId:string):Promise<IpcResult<FreshConcreteSummary[]>>;
 }
