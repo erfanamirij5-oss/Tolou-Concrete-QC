@@ -79,7 +79,7 @@ export function ProjectWorkbench({onChanged,refreshKey=0,onStartSampling,onOpenR
       <div><small>منتظر تأیید</small><strong>{awaitingReview.length.toLocaleString('fa-IR')}</strong></div>
       <div><small>نتیجه تأییدشده</small><strong>{approved.length.toLocaleString('fa-IR')}</strong></div>
     </div>
-    <ProjectManagementSnapshot projectId={current.id} samples={samples}/>
+    <ProjectManagementSnapshot projectId={current.id} samples={samples} characteristicStrengthMpa={current.characteristic_strength_mpa??null}/>
     <div className="quick-actions dossier-actions">
       <button className="quick-action" onClick={()=>onStartSampling?.(current.id)}><span><strong>نمونه‌برداری جدید</strong><small>ثبت نوبت جدید برای همین پروژه</small></span></button>
       <button className="quick-action" onClick={()=>setTab('samples')}><span><strong>برنامه نمونه‌ها</strong><small>مشاهده موعدهای ۷ و ۲۸ روزه</small></span></button>
