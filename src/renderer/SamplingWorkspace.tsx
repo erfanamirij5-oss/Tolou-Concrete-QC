@@ -1,83 +1,86 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { CreatedSample, LaboratoryKind, PourSummary, ProjectSummary } from '../shared/ipc';
+import type { CreatedSample, LaboratoryKind, MixDesignSummary, MixVersionSummary, PourSummary, ProjectSummary } from '../shared/ipc';
 import { PersianDateTimeInput } from './PersianDateTimeInput';
 import { isoToPersianLocal } from './jalali';
 import './laboratory-workbench.css';
 
 const nextSeriesId=()=>`TL-${Date.now().toString(36).toUpperCase()}`;
 const nextComparisonId=()=>`CMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+const nextComponentId=()=>`MAT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 type CreatedState={id:string;samples:CreatedSample[]};
 type PartyType='laboratory'|'person'|'consultant'|'client'|'supervisor'|'other';
-type TraceabilityBridge={addComparisonParty:(input:{id:string;seriesId:string;partyType:PartyType;partyName:string;laboratoryName?:string;samplerName?:string;externalReference?:string;notes?:string})=>Promise<{ok:boolean;data?:unknown;message?:string}>};
+type MixSourceMode='library'|'manual';
+type MaterialCategory='fine_aggregate'|'coarse_aggregate'|'scm'|'powder'|'chemical_admixture'|'air_entrainer'|'fiber'|'other';
+type MaterialDraft={id:string;category:MaterialCategory;materialName:string;quantity:string};
+type MixSnapshotInput={seriesId:string;sourceMode:MixSourceMode;mixDesignVersionId?:string;mixCode?:string;mixRevision?:number|null;characteristicStrengthMpa?:number|null;targetStrengthMpa?:number|null;declaredWaterCementRatio?:number|null;cementKgM3?:number|null;waterKgM3?:number|null;notes?:string;components:Array<{id:string;category:MaterialCategory;materialName:string;quantityKgM3:number}>};
+type TraceabilityBridge={
+  addComparisonParty:(input:{id:string;seriesId:string;partyType:PartyType;partyName:string;laboratoryName?:string;samplerName?:string;externalReference?:string;notes?:string})=>Promise<{ok:boolean;data?:unknown;message?:string}>;
+  saveMixSnapshot:(input:MixSnapshotInput)=>Promise<{ok:boolean;data?:{calculatedWaterCementRatio:number|null;waterCementMismatch:boolean;totalRecordedMassKgM3:number};message?:string}>;
+};
 const traceability=()=>((window as unknown as {tolouTraceability:TraceabilityBridge}).tolouTraceability);
+const num=(value:FormDataEntryValue|null)=>{const raw=String(value??'').trim();if(!raw)return null;const parsed=Number(raw);if(!Number.isFinite(parsed))throw new Error('یکی از مقادیر عددی طرح مخلوط معتبر نیست.');return parsed;};
+const defaultMaterials=():MaterialDraft[]=>[
+  {id:nextComponentId(),category:'fine_aggregate',materialName:'ماسه',quantity:''},
+  {id:nextComponentId(),category:'coarse_aggregate',materialName:'نخودی',quantity:''},
+  {id:nextComponentId(),category:'coarse_aggregate',materialName:'بادامی',quantity:''},
+  {id:nextComponentId(),category:'powder',materialName:'افزودنی پودری',quantity:''},
+  {id:nextComponentId(),category:'chemical_admixture',materialName:'روان‌کننده / فوق‌روان‌کننده',quantity:''},
+  {id:nextComponentId(),category:'air_entrainer',materialName:'افزودنی حباب‌زا',quantity:''},
+];
 
 export function SamplingWorkspace({onChanged,refreshKey=0,initialProjectId='',onOpenSchedule}:{onChanged?:()=>void;refreshKey?:number;initialProjectId?:string;onOpenSchedule?:()=>void}){
   const[kind,setKind]=useState<LaboratoryKind|null>(initialProjectId?'customer':null);
-  const[projects,setProjects]=useState<ProjectSummary[]>([]);
-  const[pours,setPours]=useState<PourSummary[]>([]);
-  const[projectId,setProjectId]=useState(initialProjectId);
-  const[pourId,setPourId]=useState('');
-  const[comparisonEnabled,setComparisonEnabled]=useState(false);
-  const[partyType,setPartyType]=useState<PartyType>('laboratory');
-  const[busy,setBusy]=useState(false);
-  const[message,setMessage]=useState('');
-  const[created,setCreated]=useState<CreatedState|null>(null);
+  const[projects,setProjects]=useState<ProjectSummary[]>([]);const[pours,setPours]=useState<PourSummary[]>([]);
+  const[projectId,setProjectId]=useState(initialProjectId);const[pourId,setPourId]=useState('');
+  const[comparisonEnabled,setComparisonEnabled]=useState(false);const[partyType,setPartyType]=useState<PartyType>('laboratory');
+  const[mixEnabled,setMixEnabled]=useState(false);const[mixSourceMode,setMixSourceMode]=useState<MixSourceMode>('manual');
+  const[mixDesigns,setMixDesigns]=useState<MixDesignSummary[]>([]);const[mixVersions,setMixVersions]=useState<MixVersionSummary[]>([]);const[mixDesignId,setMixDesignId]=useState('');const[mixVersionId,setMixVersionId]=useState('');
+  const[materials,setMaterials]=useState<MaterialDraft[]>(defaultMaterials);
+  const[busy,setBusy]=useState(false);const[message,setMessage]=useState('');const[created,setCreated]=useState<CreatedState|null>(null);
 
   useEffect(()=>{if(initialProjectId)setKind('customer');},[initialProjectId]);
-  useEffect(()=>{void window.tolou.listProjects().then(r=>{if(!r.ok)throw new Error(r.message);const active=r.data.filter(x=>x.archived===0);setProjects(active);setProjectId(current=>active.some(p=>p.id===current)?current:(initialProjectId&&active.some(p=>p.id===initialProjectId)?initialProjectId:(active[0]?.id??'')));}).catch(e=>setMessage(e instanceof Error?e.message:'بارگذاری پروژه‌ها انجام نشد'));},[refreshKey,initialProjectId]);
+  useEffect(()=>{void Promise.all([window.tolou.listProjects(),window.tolou.listMixDesigns()]).then(([p,m])=>{if(!p.ok)throw new Error(p.message);if(!m.ok)throw new Error(m.message);const active=p.data.filter(x=>x.archived===0);setProjects(active);setMixDesigns(m.data.filter(x=>x.archived===0));setProjectId(current=>active.some(x=>x.id===current)?current:(initialProjectId&&active.some(x=>x.id===initialProjectId)?initialProjectId:(active[0]?.id??'')));}).catch(e=>setMessage(e instanceof Error?e.message:'بارگذاری اطلاعات پایه انجام نشد'));},[refreshKey,initialProjectId]);
   useEffect(()=>{if(kind!=='customer'||!projectId){setPours([]);setPourId('');return;}void window.tolou.listPours(projectId).then(r=>{if(!r.ok)throw new Error(r.message);setPours(r.data);setPourId(current=>r.data.some(p=>p.id===current)?current:(r.data[0]?.id??''));}).catch(e=>setMessage(e instanceof Error?e.message:'بارگذاری بتن‌ریزی‌ها انجام نشد'));},[kind,projectId,refreshKey]);
+  useEffect(()=>{if(!mixDesignId){setMixVersions([]);setMixVersionId('');return;}void window.tolou.listMixVersions(mixDesignId).then(r=>{if(!r.ok)throw new Error(r.message);setMixVersions(r.data);setMixVersionId(current=>r.data.some(v=>v.id===current)?current:(r.data.at(-1)?.id??''));}).catch(e=>setMessage(e instanceof Error?e.message:'نسخه‌های طرح اختلاط بارگذاری نشد'));},[mixDesignId]);
 
+  const selectedVersion=useMemo(()=>mixVersions.find(v=>v.id===mixVersionId)??null,[mixVersions,mixVersionId]);
   function chooseKind(next:LaboratoryKind){setKind(next);setCreated(null);setMessage('');if(next==='internal'){setProjectId('');setPourId('');}}
+  function addMaterial(){setMaterials(rows=>[...rows,{id:nextComponentId(),category:'other',materialName:'',quantity:''}]);}
+  function updateMaterial(id:string,patch:Partial<MaterialDraft>){setMaterials(rows=>rows.map(row=>row.id===id?{...row,...patch}:row));}
+  function removeMaterial(id:string){setMaterials(rows=>rows.filter(row=>row.id!==id));}
+
   async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!kind)return;const form=event.currentTarget;const data=new FormData(form);setBusy(true);setMessage('');setCreated(null);try{
     const sampledAt=String(data.get('sampledAt')??'');if(!sampledAt)throw new Error('تاریخ و ساعت نمونه‌برداری را وارد کنید.');
     const result=await window.tolou.createSeries({id:nextSeriesId(),kind,projectId:kind==='customer'?projectId:undefined,pourId:kind==='customer'?pourId:undefined,title:kind==='internal'?String(data.get('title')??''):undefined,purpose:kind==='internal'?String(data.get('purpose')??''):undefined,sampledAt,samplerName:String(data.get('samplerName')??'')});
     if(!result.ok)throw new Error(result.message);
-    let comparisonSaved=false;
-    if(comparisonEnabled){
-      const partyName=String(data.get('comparisonPartyName')??'').trim();if(!partyName)throw new Error('نام طرف مقایسه‌ای را وارد کنید.');
-      const comparison=await traceability().addComparisonParty({id:nextComparisonId(),seriesId:result.data.id,partyType,partyName,laboratoryName:String(data.get('comparisonLaboratoryName')??''),samplerName:String(data.get('comparisonSamplerName')??''),externalReference:String(data.get('comparisonReference')??''),notes:String(data.get('comparisonNotes')??'')});
-      if(!comparison.ok)throw new Error(comparison.message||'ثبت طرف مقایسه‌ای انجام نشد');comparisonSaved=true;
-    }
-    setCreated({id:result.data.id,samples:result.data.samples});
-    setMessage(comparisonSaved?'نمونه‌برداری و طرف مقایسه‌ای ثبت شدند. موعدهای ۷ و ۲۸ روزه ساخته شد.':'نمونه‌برداری ثبت شد. موعدهای ۷ و ۲۸ روزه در برنامه آزمایشگاه قرار گرفتند.');
-    form.reset();setComparisonEnabled(false);setPartyType('laboratory');onChanged?.();
+    const savedParts:string[]=[];
+    if(comparisonEnabled){const partyName=String(data.get('comparisonPartyName')??'').trim();if(!partyName)throw new Error('نام طرف مقایسه‌ای را وارد کنید.');const comparison=await traceability().addComparisonParty({id:nextComparisonId(),seriesId:result.data.id,partyType,partyName,laboratoryName:String(data.get('comparisonLaboratoryName')??''),samplerName:String(data.get('comparisonSamplerName')??''),externalReference:String(data.get('comparisonReference')??''),notes:String(data.get('comparisonNotes')??'')});if(!comparison.ok)throw new Error(comparison.message||'ثبت طرف مقایسه‌ای انجام نشد');savedParts.push('نمونه موازی');}
+    let mixQuality:{waterCementMismatch:boolean;calculatedWaterCementRatio:number|null;totalRecordedMassKgM3:number}|undefined;
+    if(mixEnabled){if(mixSourceMode==='library'&&!mixVersionId)throw new Error('نسخه طرح اختلاط را انتخاب کنید.');const components=materials.filter(x=>x.materialName.trim()||x.quantity.trim()).map((item,index)=>{if(!item.materialName.trim())throw new Error(`نام مصالح ردیف ${index+1} را وارد کنید.`);const quantity=Number(item.quantity);if(!item.quantity.trim()||!Number.isFinite(quantity)||quantity<0)throw new Error(`مقدار مصالح «${item.materialName}» معتبر نیست.`);return{id:item.id,category:item.category,materialName:item.materialName.trim(),quantityKgM3:quantity};});const saved=await traceability().saveMixSnapshot({seriesId:result.data.id,sourceMode:mixSourceMode,mixDesignVersionId:mixSourceMode==='library'?mixVersionId:undefined,mixCode:String(data.get('mixCode')??''),mixRevision:num(data.get('mixRevision')),characteristicStrengthMpa:num(data.get('characteristicStrengthMpa')),targetStrengthMpa:num(data.get('targetStrengthMpa')),declaredWaterCementRatio:num(data.get('waterCementRatio')),cementKgM3:num(data.get('cementKgM3')),waterKgM3:num(data.get('waterKgM3')),notes:String(data.get('mixNotes')??''),components});if(!saved.ok)throw new Error(saved.message||'ثبت Snapshot طرح مخلوط انجام نشد');mixQuality=saved.data;savedParts.push('Snapshot طرح مخلوط');}
+    setCreated({id:result.data.id,samples:result.data.samples});let success='نمونه‌برداری ثبت شد و برنامه ۷ و ۲۸ روزه ساخته شد.';if(savedParts.length)success+=` اطلاعات ${savedParts.join(' و ')} نیز به همین نوبت متصل شد.`;if(mixQuality?.waterCementMismatch)success+=' هشدار: w/c ثبت‌شده با نسبت محاسبه‌شده از آب و سیمان اختلاف بیش از 0.01 دارد.';setMessage(success);form.reset();setComparisonEnabled(false);setPartyType('laboratory');setMixEnabled(false);setMixSourceMode('manual');setMixDesignId('');setMixVersionId('');setMaterials(defaultMaterials());onChanged?.();
   }catch(e){setMessage(e instanceof Error?e.message:'ثبت نمونه‌برداری انجام نشد');}finally{setBusy(false);}}
 
-  const seven=created?.samples.filter(sample=>sample.ageDays===7)??[];
-  const twentyEight=created?.samples.filter(sample=>sample.ageDays===28)??[];
-  const witness=created?.samples.filter(sample=>sample.ageDays===null)??[];
-
-  return <>
-    <section className="workspace-intro"><p className="eyebrow">عملیات آزمایشگاه</p><h2>ثبت نمونه‌برداری</h2><p>ابتدا نوع نمونه‌برداری را مشخص کنید. اطلاعات مقایسه‌ای از همان لحظه نمونه‌برداری به نوبت متصل می‌شود تا بعداً نتیجه طرف مقابل قابل ردیابی باشد.</p></section>
-    <section className="workbench glass panel--wide">
-      {!kind&&<div className="sampling-entry-cards" aria-label="نوع نمونه‌برداری">
-        <button type="button" className="sampling-entry-card" onClick={()=>chooseKind('internal')}><span className="sampling-entry-index">01</span><strong>ثبت نمونه‌برداری داخلی</strong><p>کنترل تولید، آزمون‌های داخلی و نمونه‌هایی که مستقیماً توسط مجموعه شما اخذ می‌شوند.</p><span className="sampling-entry-cta">شروع نمونه‌برداری داخلی ←</span></button>
-        <button type="button" className="sampling-entry-card" onClick={()=>chooseKind('customer')}><span className="sampling-entry-index">02</span><strong>ثبت نمونه‌برداری از مشتریان</strong><p>نمونه‌برداری مرتبط با پروژه، بتن‌ریزی و پرونده کنترل کیفیت مشتری.</p><span className="sampling-entry-cta">شروع نمونه‌برداری مشتری ←</span></button>
-      </div>}
-      {kind&&<>
-        <div className="sampling-path-head"><div><p className="eyebrow">مسیر انتخاب‌شده</p><h3>{kind==='internal'?'نمونه‌برداری داخلی':'نمونه‌برداری مشتری'}</h3></div><button type="button" className="text-button" onClick={()=>setKind(null)}>تغییر نوع نمونه‌برداری</button></div>
-        {message&&<div className="workbench-message" role="status">{message}</div>}
-        {created&&<div className="sampling-success">
-          <div className="sampling-success-head"><div><p className="eyebrow">برنامه ایجاد شد</p><h3>نمونه‌برداری با موفقیت ثبت شد</h3></div><button type="button" className="primary-button" onClick={onOpenSchedule}>مشاهده برنامه نمونه‌ها</button></div>
-          <div className="sampling-schedule-grid"><div><span>۷ روزه</span><strong>{seven.length.toLocaleString('fa-IR')} نمونه</strong><small>{seven[0]?.dueAt?`موعد: ${isoToPersianLocal(seven[0].dueAt)}`:'—'}</small></div><div><span>۲۸ روزه</span><strong>{twentyEight.length.toLocaleString('fa-IR')} نمونه</strong><small>{twentyEight[0]?.dueAt?`موعد: ${isoToPersianLocal(twentyEight[0].dueAt)}`:'—'}</small></div><div><span>شاهد / ذخیره</span><strong>{witness.length.toLocaleString('fa-IR')} نمونه</strong><small>بدون موعد خودکار</small></div></div>
+  const seven=created?.samples.filter(sample=>sample.ageDays===7)??[];const twentyEight=created?.samples.filter(sample=>sample.ageDays===28)??[];const witness=created?.samples.filter(sample=>sample.ageDays===null)??[];
+  return <><section className="workspace-intro"><p className="eyebrow">عملیات آزمایشگاه</p><h2>ثبت نمونه‌برداری</h2><p>نوع نمونه‌برداری، نمونه موازی و Snapshot واقعی طرح مخلوط در یک مسیر ثبت می‌شوند تا هر نتیجه بعداً کاملاً قابل ردیابی باشد.</p></section><section className="workbench glass panel--wide">
+    {!kind&&<div className="sampling-entry-cards"><button type="button" className="sampling-entry-card" onClick={()=>chooseKind('internal')}><span className="sampling-entry-index">01</span><strong>ثبت نمونه‌برداری داخلی</strong><p>کنترل تولید و نمونه‌هایی که مستقیماً توسط مجموعه شما اخذ می‌شوند.</p><span className="sampling-entry-cta">شروع نمونه‌برداری داخلی ←</span></button><button type="button" className="sampling-entry-card" onClick={()=>chooseKind('customer')}><span className="sampling-entry-index">02</span><strong>ثبت نمونه‌برداری از مشتریان</strong><p>نمونه‌برداری مرتبط با پروژه، بتن‌ریزی و پرونده QC مشتری.</p><span className="sampling-entry-cta">شروع نمونه‌برداری مشتری ←</span></button></div>}
+    {kind&&<><div className="sampling-path-head"><div><p className="eyebrow">مسیر انتخاب‌شده</p><h3>{kind==='internal'?'نمونه‌برداری داخلی':'نمونه‌برداری مشتری'}</h3></div><button type="button" className="text-button" onClick={()=>setKind(null)}>تغییر نوع</button></div>{message&&<div className="workbench-message" role="status">{message}</div>}{created&&<div className="sampling-success"><div className="sampling-success-head"><div><p className="eyebrow">برنامه ایجاد شد</p><h3>نمونه‌برداری ثبت شد</h3></div><button type="button" className="primary-button" onClick={onOpenSchedule}>مشاهده برنامه نمونه‌ها</button></div><div className="sampling-schedule-grid"><div><span>۷ روزه</span><strong>{seven.length.toLocaleString('fa-IR')} نمونه</strong><small>{seven[0]?.dueAt?isoToPersianLocal(seven[0].dueAt):'—'}</small></div><div><span>۲۸ روزه</span><strong>{twentyEight.length.toLocaleString('fa-IR')} نمونه</strong><small>{twentyEight[0]?.dueAt?isoToPersianLocal(twentyEight[0].dueAt):'—'}</small></div><div><span>شاهد</span><strong>{witness.length.toLocaleString('fa-IR')} نمونه</strong><small>بدون موعد خودکار</small></div></div></div>}
+      <form className="workbench-form" onSubmit={submit}>
+        {kind==='customer'?<><label>پروژه<select value={projectId} onChange={e=>setProjectId(e.target.value)} required><option value="">انتخاب پروژه</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name} — {project.customer_name}</option>)}</select></label><label>بتن‌ریزی<select value={pourId} onChange={e=>setPourId(e.target.value)} required><option value="">انتخاب بتن‌ریزی</option>{pours.map(pour=><option key={pour.id} value={pour.id}>{isoToPersianLocal(pour.occurred_at)}</option>)}</select></label></>:<><label>عنوان آزمایش<input name="title" required/></label><label>هدف<textarea name="purpose" required/></label></>}
+        <label>تاریخ و ساعت نمونه‌برداری (شمسی)<PersianDateTimeInput name="sampledAt" required/></label><label>نام نمونه‌بردار<input name="samplerName" required/></label>
+        <div className="sampling-option-card sampling-option-card--wide"><label className="sampling-toggle"><input type="checkbox" checked={comparisonEnabled} onChange={e=>setComparisonEnabled(e.target.checked)}/><span><strong>نمونه متناظر / موازی اخذ شده است</strong><small>نتایج طرف مقابل در مرحله بعد به همین نوبت متصل می‌شود.</small></span></label></div>
+        {comparisonEnabled&&<div className="sampling-comparison-fields"><label>نوع طرف<select value={partyType} onChange={e=>setPartyType(e.target.value as PartyType)}><option value="laboratory">آزمایشگاه</option><option value="person">شخص</option><option value="consultant">مشاور</option><option value="client">کارفرما / مشتری</option><option value="supervisor">ناظر</option><option value="other">سایر</option></select></label><label>نام طرف<input name="comparisonPartyName" required/></label><label>نام آزمایشگاه<input name="comparisonLaboratoryName"/></label><label>نمونه‌بردار طرف مقابل<input name="comparisonSamplerName"/></label><label>شماره گزارش / مرجع<input name="comparisonReference"/></label><label>توضیحات<textarea name="comparisonNotes"/></label></div>}
+        <div className="sampling-option-card sampling-option-card--wide"><label className="sampling-toggle"><input type="checkbox" checked={mixEnabled} onChange={e=>setMixEnabled(e.target.checked)}/><span><strong>طرح مخلوط این نوبت مشخص است</strong><small>یک Snapshot تاریخی ذخیره می‌شود؛ تغییرات بعدی کتابخانه طرح اختلاط این رکورد را عوض نمی‌کند.</small></span></label></div>
+        {mixEnabled&&<div className="mix-snapshot-shell">
+          <div className="mix-source-switch"><button type="button" className={mixSourceMode==='manual'?'is-active':''} onClick={()=>setMixSourceMode('manual')}>ثبت دستی Snapshot</button><button type="button" className={mixSourceMode==='library'?'is-active':''} onClick={()=>setMixSourceMode('library')}>انتخاب از کتابخانه</button></div>
+          {mixSourceMode==='library'&&<div className="mix-library-grid"><label>طرح اختلاط<select value={mixDesignId} onChange={e=>setMixDesignId(e.target.value)} required><option value="">انتخاب طرح</option>{mixDesigns.map(m=><option key={m.id} value={m.id}>{m.code} — {m.title}</option>)}</select></label><label>نسخه<select value={mixVersionId} onChange={e=>setMixVersionId(e.target.value)} required><option value="">انتخاب نسخه</option>{mixVersions.map(v=><option key={v.id} value={v.id}>Revision {v.revision.toLocaleString('fa-IR')}</option>)}</select></label>{selectedVersion&&<div className="mix-library-preview"><span>مقاومت هدف: <strong>{selectedVersion.target_strength_mpa??'—'}</strong></span><span>w/c: <strong>{selectedVersion.max_water_cement_ratio??'—'}</strong></span><span>سیمان: <strong>{selectedVersion.cement_kg_m3??'—'} kg/m³</strong></span><span>آب: <strong>{selectedVersion.water_kg_m3??'—'} kg/m³</strong></span></div>}</div>}
+          <div className="mix-core-grid"><label>کد طرح<input name="mixCode" placeholder={mixSourceMode==='library'?'در صورت نیاز به override خالی بگذارید':'مثلاً M25-01'}/></label><label>Revision<input name="mixRevision" type="number" min="0" step="1"/></label><label>مقاومت مشخصه MPa<input name="characteristicStrengthMpa" type="number" min="0" step="0.1"/></label><label>مقاومت هدف MPa<input name="targetStrengthMpa" type="number" min="0" step="0.1"/></label><label>نسبت آب به سیمان w/c<input name="waterCementRatio" type="number" min="0.01" max="1.99" step="0.001"/></label><label>سیمان kg/m³<input name="cementKgM3" type="number" min="0" step="0.1"/></label><label>آب kg/m³<input name="waterKgM3" type="number" min="0" step="0.1"/></label></div>
+          <div className="mix-material-head"><div><strong>اجزای طرح مخلوط</strong><small>همه مقادیر جرمی بر حسب kg/m³ ذخیره می‌شوند.</small></div><button type="button" className="secondary-button" onClick={addMaterial}>+ افزودن مصالح</button></div>
+          <div className="mix-material-list">{materials.map((item,index)=><div className="mix-material-row" key={item.id}><span className="mix-material-index">{(index+1).toLocaleString('fa-IR')}</span><select value={item.category} onChange={e=>updateMaterial(item.id,{category:e.target.value as MaterialCategory})}><option value="fine_aggregate">سنگدانه ریز</option><option value="coarse_aggregate">سنگدانه درشت</option><option value="scm">SCM</option><option value="powder">افزودنی پودری</option><option value="chemical_admixture">افزودنی شیمیایی / روان‌کننده</option><option value="air_entrainer">حباب‌زا</option><option value="fiber">الیاف</option><option value="other">سایر</option></select><input value={item.materialName} onChange={e=>updateMaterial(item.id,{materialName:e.target.value})} placeholder="نام مصالح"/><input value={item.quantity} onChange={e=>updateMaterial(item.id,{quantity:e.target.value})} inputMode="decimal" placeholder="kg/m³"/><button type="button" className="mix-remove" onClick={()=>removeMaterial(item.id)} aria-label="حذف ردیف">×</button></div>)}</div>
+          <label className="mix-notes">یادداشت طرح مخلوط<textarea name="mixNotes" placeholder="منبع اطلاعات، شماره بچ، توضیحات تغییرات یا شرایط ویژه"/></label>
+          <div className="mix-quality-note"><strong>کنترل کیفیت داده</strong><span>اگر آب و سیمان وارد شوند، w/c محاسبه می‌شود. اختلاف بیش از 0.01 با w/c ثبت‌شده به‌صورت هشدار ذخیره/نمایش داده می‌شود.</span></div>
         </div>}
-        <form className="workbench-form" onSubmit={submit}>
-          {kind==='customer'?<><label>پروژه<select value={projectId} onChange={e=>setProjectId(e.target.value)} required><option value="">انتخاب پروژه</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name} — {project.customer_name}</option>)}</select></label><label>بتن‌ریزی<select value={pourId} onChange={e=>setPourId(e.target.value)} required><option value="">انتخاب بتن‌ریزی</option>{pours.map(pour=><option key={pour.id} value={pour.id}>{isoToPersianLocal(pour.occurred_at)}</option>)}</select></label></>:<><label>عنوان آزمایش<input name="title" placeholder="مثلاً کنترل روزانه تولید" required/></label><label>هدف<textarea name="purpose" placeholder="هدف آزمایش داخلی" required/></label></>}
-          <label>تاریخ و ساعت نمونه‌برداری (شمسی)<PersianDateTimeInput name="sampledAt" required/></label><label>نام نمونه‌بردار<input name="samplerName" required/></label>
-          <div className="sampling-option-card sampling-option-card--wide"><label className="sampling-toggle"><input type="checkbox" checked={comparisonEnabled} onChange={e=>setComparisonEnabled(e.target.checked)}/><span><strong>نمونه متناظر / موازی اخذ شده است</strong><small>اگر شخص، مشاور، کارفرما یا آزمایشگاه دیگری هم‌زمان نمونه گرفته، این گزینه را فعال کنید.</small></span></label></div>
-          {comparisonEnabled&&<div className="sampling-comparison-fields">
-            <label>نوع طرف مقایسه‌ای<select value={partyType} onChange={e=>setPartyType(e.target.value as PartyType)}><option value="laboratory">آزمایشگاه</option><option value="person">شخص</option><option value="consultant">مشاور</option><option value="client">کارفرما / مشتری</option><option value="supervisor">ناظر</option><option value="other">سایر</option></select></label>
-            <label>نام طرف مقایسه‌ای<input name="comparisonPartyName" required={comparisonEnabled} placeholder="نام شخص یا مجموعه"/></label>
-            <label>نام آزمایشگاه<input name="comparisonLaboratoryName" placeholder="در صورت وجود"/></label>
-            <label>نمونه‌بردار طرف مقابل<input name="comparisonSamplerName" placeholder="در صورت مشخص بودن"/></label>
-            <label>شماره گزارش / مرجع خارجی<input name="comparisonReference" placeholder="اختیاری؛ بعداً هم قابل تکمیل است"/></label>
-            <label>توضیحات<textarea name="comparisonNotes" placeholder="شرایط یا توضیحات نمونه موازی"/></label>
-          </div>}
-          <div className="sampling-next-note"><strong>مرحله بعدی</strong><span>پس از تثبیت این بخش، «طرح مخلوط این نوبت» و سپس ثبت نتایج طرف مقایسه‌ای به همین نوبت متصل می‌شود.</span></div>
-          <button className="primary-button workbench-submit" disabled={busy||(kind==='customer'&&(!projectId||!pourId))}>{busy?'در حال ثبت…':'ثبت نمونه‌برداری و ساخت برنامه آزمایش'}</button>
-        </form>
-      </>}
-    </section>
-  </>;
+        <button className="primary-button workbench-submit" disabled={busy||(kind==='customer'&&(!projectId||!pourId))}>{busy?'در حال ثبت…':'ثبت نمونه‌برداری و اطلاعات ردیابی'}</button>
+      </form></>}
+  </section></>;
 }
