@@ -1,0 +1,20 @@
+{
+  "name": "tolou-qc-license-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline license issuer for Tolou Concrete QC",
+  "main": "src/main.cjs",
+  "author": "Engineer Erfan Amiri",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "make": "electron-forge make --platform=win32 --arch=x64"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-squirrel": "7.11.2",
+    "@electron-forge/plugin-fuses": "7.11.2",
+    "@electron/fuses": "1.8.0",
+    "electron": "44.3.0"
+  }
+}
