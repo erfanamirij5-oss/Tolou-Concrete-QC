@@ -1,0 +1,56 @@
+name: License Manager Windows
+
+on:
+  push:
+    branches:
+      - feature/offline-license-manager
+    paths:
+      - 'license-manager/**'
+      - 'assets/icons/**'
+      - '.github/workflows/license-manager-windows.yml'
+  pull_request:
+    paths:
+      - 'license-manager/**'
+      - 'assets/icons/**'
+      - '.github/workflows/license-manager-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: license-manager
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: license-manager/package.json
+
+      - name: Install dependencies
+        run: npm install --package-lock=false --ignore-scripts=false
+
+      - name: Syntax check
+        run: |
+          node --check src/main.cjs
+          node --check src/preload.cjs
+          node --check src/renderer.js
+
+      - name: Build Windows installer
+        run: npm run make
+
+      - name: Upload License Manager artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tolou-QC-License-Manager-Windows-x64
+          path: license-manager/out/make/squirrel.windows/x64/**
+          if-no-files-found: error
+          retention-days: 90
