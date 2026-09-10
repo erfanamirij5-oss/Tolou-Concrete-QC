@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 const assets = [
   ['src/infrastructure/sqlite/001-foundation.sql', 'dist-electron/infrastructure/sqlite/001-foundation.sql'],
   ['src/infrastructure/sqlite/002-engineering-qc.sql', 'dist-electron/infrastructure/sqlite/002-engineering-qc.sql'],
+  ['src/infrastructure/sqlite/003-witness-schedule-audit.sql', 'dist-electron/infrastructure/sqlite/003-witness-schedule-audit.sql'],
 ];
 
 for (const [source, target] of assets) {
