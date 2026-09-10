@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDatabaseRuntime, type DatabaseRuntime } from './database.js';
-import { IPC_CHANNELS, type AppInfo, type ApproveDraftInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type SaveDraftInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision } from '../shared/ipc.js';
+import { IPC_CHANNELS, type AppInfo, type ApproveDraftInput, type CreateMixDesignInput, type CreateMixVersionInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type SaveDraftInput, type SavePourSpecificationInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision } from '../shared/ipc.js';
 const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
 function createMainWindow():BrowserWindow{const window=new BrowserWindow({width:1440,height:900,minWidth:1180,minHeight:720,show:false,backgroundColor:'#F5F6F8',title:'طلوع | کنترل کیفیت بتن',autoHideMenuBar:true,webPreferences:{preload:join(__dirname,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});window.once('ready-to-show',()=>window.show());const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)void window.loadURL(devServer);else void window.loadFile(join(__dirname,'../../dist-renderer/index.html'));window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',(event,url)=>{if(!devServer||!url.startsWith(devServer))event.preventDefault();});return window;}
 function safeMessage(error:unknown):string{
@@ -28,6 +28,12 @@ function registerIpc(database:DatabaseRuntime):void{
  ipcMain.handle(IPC_CHANNELS.createPour,(_e,input:CreatePourInput)=>safe(()=>database.projects.createPour(input)));
  ipcMain.handle(IPC_CHANNELS.listPours,(_e,projectId:string)=>safe(()=>database.projects.listPours(projectId)));
  ipcMain.handle(IPC_CHANNELS.dashboard,()=>safe(()=>database.projects.dashboard()));
+ ipcMain.handle(IPC_CHANNELS.createMixDesign,(_e,input:CreateMixDesignInput)=>safe(()=>database.engineering.createMixDesign(input)));
+ ipcMain.handle(IPC_CHANNELS.listMixDesigns,()=>safe(()=>database.engineering.listMixDesigns()));
+ ipcMain.handle(IPC_CHANNELS.createMixVersion,(_e,input:CreateMixVersionInput)=>safe(()=>database.engineering.createMixVersion(input)));
+ ipcMain.handle(IPC_CHANNELS.listMixVersions,(_e,mixDesignId:string)=>safe(()=>database.engineering.listMixVersions(mixDesignId)));
+ ipcMain.handle(IPC_CHANNELS.savePourSpecification,(_e,input:SavePourSpecificationInput)=>safe(()=>database.engineering.savePourSpecification(input)));
+ ipcMain.handle(IPC_CHANNELS.getPourSpecification,(_e,pourId:string)=>safe(()=>database.engineering.getPourSpecification(pourId)));
 }
 app.whenReady().then(()=>{runtime=createDatabaseRuntime();registerIpc(runtime);createMainWindow();app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createMainWindow();});});
 app.on('before-quit',()=>{runtime?.db.close();runtime=undefined;}); app.on('window-all-closed',()=>app.quit());
