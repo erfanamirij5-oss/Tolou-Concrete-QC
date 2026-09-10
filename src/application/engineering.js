@@ -94,6 +94,10 @@ export function createEngineeringService(db,{companyId,actor}){
       if(pour.project_id!==projectId) throw new Error('بتن‌ریزی به پروژه انتخاب‌شده تعلق ندارد');
       const mixDesignVersionId=input?.mixDesignVersionId?requiredText(input.mixDesignVersionId,'نسخه طرح اختلاط'):null;
       if(mixDesignVersionId) ownedVersion(mixDesignVersionId);
+      const existing=db.prepare('SELECT mix_design_version_id FROM pour_qc_specifications WHERE company_id=? AND pour_id=?').get(companyId,pour.id);
+      if(existing?.mix_design_version_id && existing.mix_design_version_id!==mixDesignVersionId){
+        throw new Error('نسخه طرح اختلاط این بتن‌ریزی قبلاً تثبیت شده و قابل تغییر نیست');
+      }
       const specifiedStrengthMpa=optionalNumber(input?.specifiedStrengthMpa,'مقاومت مشخصه',{min:0,max:1000});
       const targetSlumpMm=optionalNumber(input?.targetSlumpMm,'اسلامپ هدف',{min:0,max:1000});
       const nominalMaxAggregateMm=optionalNumber(input?.nominalMaxAggregateMm,'حداکثر اندازه اسمی سنگدانه',{min:0,max:500,strictMin:true});
