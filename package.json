@@ -1,0 +1,1 @@
+{"name":"tolou-concrete-qc","version":"0.0.1","private":true,"type":"module","scripts":{"test":"node --test","check":"node --check src/domain/sampling.js"},"engines":{"node":">=22"}}
