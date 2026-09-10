@@ -11,6 +11,7 @@ export function createReportingService(db,{companyId}){
    const project=db.prepare('SELECT id,name,customer_name,address FROM projects WHERE id=? AND company_id=?').get(projectId,companyId);
    if(!project)throw new Error('پروژه یافت نشد');
    const company=db.prepare('SELECT id,name FROM companies WHERE id=?').get(companyId);
+   const profile=db.prepare('SELECT qc_manager_name,managing_director_name FROM company_profiles WHERE company_id=?').get(companyId)??{qc_manager_name:'',managing_director_name:''};
    const summary=analytics.summary({projectId,startAt:input.startAt??null,endAt:input.endAt??null});
    const {startAt,endAt}=summary.filters;
    const seriesClauses=['company_id=?','project_id=?'],seriesParams=[companyId,projectId];
@@ -22,6 +23,7 @@ export function createReportingService(db,{companyId}){
     schema:'tolou-qc-project-report',
     schemaVersion:1,
     company:{id:company.id,name:company.name},
+    organization:{qcManagerName:profile.qc_manager_name,managingDirectorName:profile.managing_director_name},
     project:{id:project.id,name:project.name,customerName:project.customer_name,address:project.address},
     filters:summary.filters,
     counts:{samplingSeries:seriesCount,approvedStrengthResults:approvedResultCount},
