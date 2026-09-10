@@ -2,10 +2,15 @@ import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'el
 import { writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import * as XLSX from 'xlsx';
 import { projectReportWorkbook } from './project-report-workbook.js';
 import { createDatabaseRuntime, type DatabaseRuntime } from './database.js';
 import { IPC_CHANNELS, type AddAttachmentResult, type AnalyticsFilter, type AnalyticsSummary, type AppInfo, type ApproveDraftInput, type AttachmentSummary, type CreateConcreteSourceInput, type CreateCustomerInput, type CreateMixDesignInput, type CreateMixVersionInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type CreateTestingLaboratoryInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type ProjectQcReport, type ProjectQcReportInput, type RegisterExternalResultInput, type ReportExportResult, type RequestCorrectionInput, type SaveDraftInput, type SaveFreshConcreteInput, type SavePourContextInput, type SavePourSpecificationInput, type SaveSpecimenPhysicsInput, type ScheduleWitnessInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision, type VoidResultInput, type VoidResult, type WitnessScheduleResult, type WitnessScheduleRevision } from '../shared/ipc.js';
+const require=createRequire(import.meta.url);
+const handledSquirrelEvent=process.platform==='win32'&&Boolean(require('electron-squirrel-startup'));
+if(handledSquirrelEvent)app.quit();
+if(process.platform==='win32')app.setAppUserModelId('com.squirrel.tolou_concrete_qc.TolouConcreteQC');
 const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
 function createMainWindow():BrowserWindow{const window=new BrowserWindow({width:1440,height:900,minWidth:1180,minHeight:720,show:false,backgroundColor:'#F5F6F8',title:'طلوع | کنترل کیفیت بتن',autoHideMenuBar:true,webPreferences:{preload:join(__dirname,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});window.once('ready-to-show',()=>window.show());const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)void window.loadURL(devServer);else void window.loadFile(join(__dirname,'../../dist-renderer/index.html'));window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',(event,url)=>{if(!devServer||!url.startsWith(devServer))event.preventDefault();});return window;}
 function safeMessage(error:unknown):string{if(error instanceof Error){console.error('[Tolou IPC]',error);const message=error.message.trim();if(message.length<=180&&/[\u0600-\u06FF]/u.test(message)&&!/SQLITE|constraint|FOREIGN KEY|UNIQUE|CHECK|trigger|database|syntax|stack/i.test(message))return message;}return 'عملیات انجام نشد. اطلاعات ورودی را بررسی کنید و دوباره تلاش کنید.';}
