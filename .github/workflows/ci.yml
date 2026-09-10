@@ -19,3 +19,14 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - name: Build Windows installer
+        run: npx electron-forge make --platform=win32 --arch=x64
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tolou-Concrete-QC-Windows-x64
+          path: |
+            out/make/squirrel.windows/x64/*.exe
+            out/make/squirrel.windows/x64/*.nupkg
+            out/make/squirrel.windows/x64/RELEASES
+          if-no-files-found: error
