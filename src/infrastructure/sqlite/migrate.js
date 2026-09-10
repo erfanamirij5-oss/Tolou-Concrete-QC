@@ -5,6 +5,7 @@ const migrationFiles = [
   [1, './001-foundation.sql'],
   [2, './002-engineering-qc.sql'],
   [3, './003-witness-schedule-audit.sql'],
+  [4, './004-qc-parties-external-results.sql'],
 ];
 
 function loadMigrations() {
