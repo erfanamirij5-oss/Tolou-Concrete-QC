@@ -25,8 +25,9 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
   if (db.prepare('PRAGMA foreign_keys').get().foreign_keys !== 1) throw new Error('کنترل ارتباط داده‌ها فعال نیست');
   if (!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId)) throw new Error('شرکت یافت نشد');
 
-  const ownedCurrent = (sampleId) => db.prepare(`SELECT r.*,s.due_at,ss.sampled_at FROM current_results r JOIN samples s ON s.id=r.sample_id
-    JOIN sampling_series ss ON ss.id=s.series_id WHERE r.sample_id=? AND ss.company_id=?`).get(sampleId,companyId);
+  const ownedCurrent = (sampleId) => db.prepare(`SELECT r.*,COALESCE(s.due_at,w.due_at) AS due_at,ss.sampled_at FROM current_results r JOIN samples s ON s.id=r.sample_id
+    JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id
+    WHERE r.sample_id=? AND ss.company_id=?`).get(sampleId,companyId);
 
   return {
     createSeries(input) {
@@ -49,6 +50,36 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
       });
     },
 
+    scheduleWitness(input) {
+      const sampleId=text(input?.sampleId,'شناسه نمونه شاهد');
+      if(!Number.isSafeInteger(input?.expectedRevision)||input.expectedRevision<0) throw new Error('شماره بازنگری برنامه آزمون معتبر نیست');
+      const dueAt=utcTimestamp(input?.dueAt);
+      const reason=text(input?.reason,'علت تعیین یا تغییر موعد');
+      const enteredAt=utcTimestamp(clock());
+      return atomic(db,()=>{
+        const sample=db.prepare(`SELECT s.id,s.age_days,s.due_at,ss.sampled_at FROM samples s JOIN sampling_series ss ON ss.id=s.series_id
+          WHERE s.id=? AND ss.company_id=?`).get(sampleId,companyId);
+        if(!sample) throw new Error('نمونه متعلق به این شرکت یافت نشد');
+        if(sample.age_days!==null||sample.due_at!==null) throw new Error('فقط نمونه شاهد بدون موعد از این گردش زمان‌بندی استفاده می‌کند');
+        if(dueAt<sample.sampled_at) throw new Error('موعد آزمون نمی‌تواند پیش از نمونه‌برداری باشد');
+        const current=db.prepare('SELECT revision FROM current_witness_schedules WHERE sample_id=?').get(sampleId);
+        if((current?.revision??0)!==input.expectedRevision) throw new Error('برنامه آزمون شاهد تغییر کرده است؛ پرونده را دوباره باز کنید');
+        const revision=input.expectedRevision+1;
+        db.prepare(`INSERT INTO witness_schedule_revisions(sample_id,revision,due_at,reason,entered_by,entered_at)
+          VALUES(?,?,?,?,?,?)`).run(sampleId,revision,dueAt,reason,actor,enteredAt);
+        return {sampleId,revision,dueAt};
+      });
+    },
+
+    listWitnessScheduleHistory(sampleId) {
+      sampleId=text(sampleId,'شناسه نمونه شاهد');
+      const owned=db.prepare(`SELECT s.id,s.age_days FROM samples s JOIN sampling_series ss ON ss.id=s.series_id WHERE s.id=? AND ss.company_id=?`).get(sampleId,companyId);
+      if(!owned) throw new Error('نمونه متعلق به این شرکت یافت نشد');
+      if(owned.age_days!==null) throw new Error('نمونه انتخاب‌شده شاهد نیست');
+      return db.prepare(`SELECT sample_id,revision,due_at,reason,entered_by,entered_at FROM witness_schedule_revisions
+        WHERE sample_id=? ORDER BY revision DESC`).all(sampleId);
+    },
+
     saveDraft(input) {
       const sampleId = text(input?.sampleId, 'شناسه نمونه');
       if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0) throw new Error('شماره بازنگری معتبر نیست');
@@ -59,8 +90,8 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
       if (testedAt > enteredAt) throw new Error('زمان آزمون نمی‌تواند در آینده باشد');
       const reason = input.expectedRevision > 0 ? text(input.reason,'علت اصلاح') : null;
       return atomic(db, () => {
-        const sample = db.prepare(`SELECT s.id,s.due_at,r.sampled_at FROM samples s JOIN sampling_series r ON r.id=s.series_id
-          WHERE s.id=? AND r.company_id=?`).get(sampleId,companyId);
+        const sample = db.prepare(`SELECT s.id,COALESCE(s.due_at,w.due_at) AS due_at,r.sampled_at FROM samples s JOIN sampling_series r ON r.id=s.series_id
+          LEFT JOIN current_witness_schedules w ON w.sample_id=s.id WHERE s.id=? AND r.company_id=?`).get(sampleId,companyId);
         if (!sample) throw new Error('نمونه متعلق به این شرکت یافت نشد');
         if (testedAt < sample.sampled_at) throw new Error('زمان آزمون پیش از نمونه‌برداری است');
         if (sample.due_at === null) throw new Error('ابتدا زمان و علت آزمون نمونه شاهد را تعیین کنید');
@@ -128,19 +159,19 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
 
     listSamples({limit=50}={}) {
       const safeLimit = Number.isSafeInteger(limit) && limit > 0 && limit <= 200 ? limit : 50;
-      return db.prepare(`SELECT s.id,s.series_id,s.age_days,s.due_at,ss.kind,ss.project_id,ss.pour_id,ss.title,
+      return db.prepare(`SELECT s.id,s.series_id,s.age_days,COALESCE(s.due_at,w.due_at) AS due_at,w.revision AS witness_schedule_revision,ss.kind,ss.project_id,ss.pour_id,ss.title,
         p.name AS project_name,r.revision,r.strength_mpa,r.state,r.tested_at,r.tested_by,r.approved_by
         FROM samples s JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
-        LEFT JOIN current_results r ON r.sample_id=s.id WHERE ss.company_id=?
-        ORDER BY COALESCE(s.due_at,ss.sampled_at) DESC,s.id DESC LIMIT ?`).all(companyId,safeLimit);
+        LEFT JOIN current_results r ON r.sample_id=s.id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id WHERE ss.company_id=?
+        ORDER BY COALESCE(s.due_at,w.due_at,ss.sampled_at) DESC,s.id DESC LIMIT ?`).all(companyId,safeLimit);
     },
 
     listReviewQueue({limit=100}={}) {
       const safeLimit=Number.isSafeInteger(limit)&&limit>0&&limit<=200?limit:100;
-      return db.prepare(`SELECT s.id,s.series_id,s.age_days,s.due_at,ss.kind,ss.project_id,ss.pour_id,ss.title,p.name AS project_name,
+      return db.prepare(`SELECT s.id,s.series_id,s.age_days,COALESCE(s.due_at,w.due_at) AS due_at,w.revision AS witness_schedule_revision,ss.kind,ss.project_id,ss.pour_id,ss.title,p.name AS project_name,
         r.revision,r.strength_mpa,r.state,r.tested_at,r.tested_by,r.approved_by,r.reason
         FROM current_results r JOIN samples s ON s.id=r.sample_id JOIN sampling_series ss ON ss.id=s.series_id
-        LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
+        LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id
         WHERE ss.company_id=? AND r.state='draft' ORDER BY r.entered_at ASC,s.id ASC LIMIT ?`).all(companyId,safeLimit);
     },
 
