@@ -7,7 +7,7 @@ type PeriodKey='all'|'30'|'90'|'180'|'365';
 type MasterRow={
   seriesId:string;sampledAt:string;samplerName:string;pourId:string|null;sourceName:string;mixLabel:string;concreteClass:string;elementName:string;
   specifiedStrengthMpa:number|null;targetSlumpMm:number|null;slumpMm:number|null;temperatureC:number|null;
-  strength7:number[];strength28:number[];mean7:number|null;mean28:number|null;sd28:number|null;cv28:number|null;densityMean:number|null;
+  strength7:number[];strength28:number[];mean7:number|null;mean28:number|null;reference7Mpa:number|null;reference28Mpa:number|null;attainment7Percent:number|null;attainment28Percent:number|null;sd28:number|null;cv28:number|null;densityMean:number|null;
   approvedCount:number;draftCount:number;pendingCount:number;overdueCount:number;status:'overdue'|'review'|'complete'|'progress';
 };
 
@@ -17,6 +17,7 @@ const n=(value:number|null,digits=1)=>value===null?'—':value.toLocaleString('f
 const mean=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
 const sd=(values:number[])=>{if(values.length<2)return null;const m=mean(values)!;return Math.sqrt(values.reduce((sum,value)=>sum+(value-m)**2,0)/(values.length-1));};
 const cv=(values:number[])=>{const m=mean(values),s=sd(values);return m&&s!==null?(s/Math.abs(m))*100:null;};
+const attainment=(value:number|null,reference:number|null)=>value!==null&&reference!==null&&reference>0?(value/reference)*100:null;
 
 function TrendChart({metric}:{metric:AnalyticsMetric}){
   const points=metric.trend;
@@ -35,7 +36,7 @@ function Scatter({rows}:{rows:MasterRow[]}){
 
 function periodStart(period:PeriodKey){if(period==='all')return null;return Date.now()-Number(period)*24*3600_000;}
 
-export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;samples:SampleSummary[]}){
+export function ProjectManagementSnapshot({projectId,samples,characteristicStrengthMpa=null}:{projectId:string;samples:SampleSummary[];characteristicStrengthMpa?:number|null}){
   const[analytics,setAnalytics]=useState<AnalyticsSummary|null>(null);
   const[context,setContext]=useState<LoadedContext|null>(null);
   const[message,setMessage]=useState('');
@@ -44,6 +45,9 @@ export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;
   const[mix,setMix]=useState('all');
   const[concreteClass,setConcreteClass]=useState('all');
   const[expanded,setExpanded]=useState<string|null>(null);
+
+  const reference7=characteristicStrengthMpa!==null?characteristicStrengthMpa*0.6:null;
+  const reference28=characteristicStrengthMpa;
 
   useEffect(()=>{let active=true;setMessage('');(async()=>{
     const [a,s,c,p]=await Promise.all([window.tolou.analyticsSummary({projectId}),window.tolou.listSeries('customer',projectId),window.tolou.listPourContexts(projectId),window.tolou.listSpecimenPhysics(5000)]);
@@ -62,14 +66,18 @@ export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;
   const masterRows=useMemo<MasterRow[]>(()=>{
     if(!context)return[];const now=Date.now();const ctxByPour=new Map(context.contexts.map(x=>[x.pour_id,x]));
     return context.series.map(series=>{
-      const seriesSamples=samples.filter(x=>x.series_id===series.id);const approved7=seriesSamples.filter(x=>x.age_days===7&&x.state==='approved'&&x.strength_mpa!==null).map(x=>x.strength_mpa as number);const approved28=seriesSamples.filter(x=>x.age_days===28&&x.state==='approved'&&x.strength_mpa!==null).map(x=>x.strength_mpa as number);
-      const densities=seriesSamples.map(x=>context.physics.get(x.id)?.density_kg_m3).filter((x):x is number=>typeof x==='number');const spec=series.pour_id?context.specs.get(series.pour_id)??null:null;const ctx=series.pour_id?ctxByPour.get(series.pour_id):undefined;const fresh=context.fresh.get(series.id)??null;
+      const seriesSamples=samples.filter(x=>x.series_id===series.id);
+      const approved7=seriesSamples.filter(x=>x.age_days===7&&x.state==='approved'&&x.strength_mpa!==null).map(x=>x.strength_mpa as number);
+      const approved28=seriesSamples.filter(x=>x.age_days===28&&x.state==='approved'&&x.strength_mpa!==null).map(x=>x.strength_mpa as number);
+      const mean7=mean(approved7),mean28=mean(approved28);
+      const densities=seriesSamples.map(x=>context.physics.get(x.id)?.density_kg_m3).filter((x):x is number=>typeof x==='number');
+      const spec=series.pour_id?context.specs.get(series.pour_id)??null:null;const ctx=series.pour_id?ctxByPour.get(series.pour_id):undefined;const fresh=context.fresh.get(series.id)??null;
       const overdueCount=seriesSamples.filter(x=>x.state!=='approved'&&x.state!=='void'&&x.due_at&&Date.parse(x.due_at)<now).length;const draftCount=seriesSamples.filter(x=>x.state==='draft').length;const pendingCount=seriesSamples.filter(x=>!x.state).length;const approvedCount=seriesSamples.filter(x=>x.state==='approved').length;
       const complete=seriesSamples.filter(x=>x.age_days===28).length>0&&seriesSamples.filter(x=>x.age_days===28).every(x=>x.state==='approved'||x.state==='void');
       const status:MasterRow['status']=overdueCount?'overdue':draftCount?'review':complete?'complete':'progress';
-      return{seriesId:series.id,sampledAt:series.sampled_at,samplerName:series.sampler_name,pourId:series.pour_id,sourceName:ctx?.concrete_source_name??'—',mixLabel:spec?.mix_code?`${spec.mix_code}${spec.mix_revision?` / R${spec.mix_revision}`:''}`:'—',concreteClass:spec?.concrete_class||'—',elementName:spec?.element_name||'—',specifiedStrengthMpa:spec?.specified_strength_mpa??null,targetSlumpMm:spec?.target_slump_mm??null,slumpMm:fresh?.slump_mm??null,temperatureC:fresh?.concrete_temperature_c??null,strength7:approved7,strength28:approved28,mean7:mean(approved7),mean28:mean(approved28),sd28:sd(approved28),cv28:cv(approved28),densityMean:mean(densities),approvedCount,draftCount,pendingCount,overdueCount,status};
+      return{seriesId:series.id,sampledAt:series.sampled_at,samplerName:series.sampler_name,pourId:series.pour_id,sourceName:ctx?.concrete_source_name??'—',mixLabel:spec?.mix_code?`${spec.mix_code}${spec.mix_revision?` / R${spec.mix_revision}`:''}`:'—',concreteClass:spec?.concrete_class||'—',elementName:spec?.element_name||'—',specifiedStrengthMpa:spec?.specified_strength_mpa??null,targetSlumpMm:spec?.target_slump_mm??null,slumpMm:fresh?.slump_mm??null,temperatureC:fresh?.concrete_temperature_c??null,strength7:approved7,strength28:approved28,mean7,mean28,reference7Mpa:reference7,reference28Mpa:reference28,attainment7Percent:attainment(mean7,reference7),attainment28Percent:attainment(mean28,reference28),sd28:sd(approved28),cv28:cv(approved28),densityMean:mean(densities),approvedCount,draftCount,pendingCount,overdueCount,status};
     }).sort((a,b)=>b.sampledAt.localeCompare(a.sampledAt));
-  },[context,samples]);
+  },[context,samples,reference7,reference28]);
 
   const sources=useMemo(()=>[...new Set(masterRows.map(r=>r.sourceName).filter(x=>x!=='—'))].sort((a,b)=>a.localeCompare(b,'fa')),[masterRows]);
   const mixes=useMemo(()=>[...new Set(masterRows.map(r=>r.mixLabel).filter(x=>x!=='—'))].sort((a,b)=>a.localeCompare(b,'fa')),[masterRows]);
@@ -78,6 +86,8 @@ export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;
   const filteredSampleIds=useMemo(()=>new Set(filtered.map(r=>r.seriesId)),[filtered]);
   const approved28=filtered.flatMap(r=>r.strength28),stats28={count:approved28.length,mean:mean(approved28),sd:sd(approved28),cv:cv(approved28)};
   const overdue=filtered.reduce((sum,r)=>sum+r.overdueCount,0);const result28Series=filtered.filter(r=>r.mean28!==null).length;
+  const meanAttainment7=mean(filtered.map(r=>r.attainment7Percent).filter((x):x is number=>x!==null));
+  const meanAttainment28=mean(filtered.map(r=>r.attainment28Percent).filter((x):x is number=>x!==null));
 
   const filteredStrengthMetric=useMemo<AnalyticsMetric|null>(()=>{if(!analytics)return null;return{...analytics.strength,trend:analytics.strength.trend.filter(p=>p.seriesId&&filteredSampleIds.has(p.seriesId))};},[analytics,filteredSampleIds]);
   const filteredSlumpMetric=useMemo<AnalyticsMetric|null>(()=>{if(!analytics)return null;return{...analytics.slump,trend:analytics.slump.trend.filter(p=>p.seriesId&&filteredSampleIds.has(p.seriesId))};},[analytics,filteredSampleIds]);
@@ -86,7 +96,13 @@ export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;
   if(!analytics||!context)return <div className="project-mini-empty">در حال ساخت نمای مهندسی پروژه…</div>;
 
   return <section className="project-management-snapshot">
-    <div className="panel-heading"><div><p className="eyebrow eyebrow--accent">QC INTELLIGENCE</p><h3>تحلیل مهندسی و جدول جامع پروژه</h3><small>یک منبع داده برای صفحه، PDF و Excel</small></div><span className="project-readonly-badge">تحلیلی · بدون حکم قبولی/رد</span></div>
+    <div className="panel-heading"><div><p className="eyebrow eyebrow--accent">QC INTELLIGENCE</p><h3>تحلیل مهندسی و جدول جامع پروژه</h3><small>مقاومت‌ها مستقیماً برحسب MPa ثبت و نسبت به مرجع پروژه تحلیل می‌شوند.</small></div><span className="project-readonly-badge">تحلیلی · مرجع عملیاتی پروژه</span></div>
+
+    <div className="strength-attainment-strip">
+      <div><small>مقاومت مشخصه پروژه</small><strong>{reference28===null?'—':`${n(reference28,2)} MPa`}</strong></div>
+      <div><small>مرجع ۷ روزه · ۶۰٪</small><strong>{reference7===null?'—':`${n(reference7,2)} MPa`}</strong><span>میانگین تحقق: {meanAttainment7===null?'—':`${n(meanAttainment7,1)} %`}</span></div>
+      <div><small>مرجع ۲۸ روزه · ۱۰۰٪</small><strong>{reference28===null?'—':`${n(reference28,2)} MPa`}</strong><span>میانگین تحقق: {meanAttainment28===null?'—':`${n(meanAttainment28,1)} %`}</span></div>
+    </div>
 
     <div className="qc-filter-bar">
       <label>بازه<select value={period} onChange={e=>setPeriod(e.target.value as PeriodKey)}><option value="all">کل سابقه</option><option value="30">۳۰ روز اخیر</option><option value="90">۹۰ روز اخیر</option><option value="180">۱۸۰ روز اخیر</option><option value="365">یک سال اخیر</option></select></label>
@@ -111,9 +127,9 @@ export function ProjectManagementSnapshot({projectId,samples}:{projectId:string;
       <article><div><strong>اسلامپ در برابر مقاومت ۲۸ روزه</strong><small>Scatter برای کشف رابطه؛ نه اثبات علت</small></div><Scatter rows={filtered}/></article>
     </div>
 
-    <div className="qc-master-section"><div className="panel-heading"><div><p className="eyebrow">MASTER QC TABLE</p><h4>جدول جامع نوبت‌های نمونه‌برداری</h4><small>هر ردیف = یک نوبت نمونه‌برداری؛ برای جزئیات روی ردیف کلیک کنید.</small></div><span className="count-badge">{filtered.length.toLocaleString('fa-IR')}</span></div>
-      {!filtered.length?<div className="project-mini-empty">با فیلتر فعلی داده‌ای وجود ندارد.</div>:<div className="table-wrap qc-master-table"><table><thead><tr><th>تاریخ</th><th>منبع</th><th>طرح/رده</th><th>عضو</th><th>اسلامپ</th><th>دما</th><th>میانگین ۷d</th><th>میانگین ۲۸d</th><th>SD ۲۸d</th><th>CV ۲۸d</th><th>جرم حجمی</th><th>وضعیت</th></tr></thead><tbody>{filtered.map(row=><><tr key={row.seriesId} className="qc-master-row" onClick={()=>setExpanded(v=>v===row.seriesId?null:row.seriesId)}><td>{isoToPersianLocal(row.sampledAt)}</td><td>{row.sourceName}</td><td>{row.mixLabel}<small>{row.concreteClass}</small></td><td>{row.elementName}</td><td>{row.slumpMm===null?'—':`${n(row.slumpMm,0)} mm`}</td><td>{row.temperatureC===null?'—':`${n(row.temperatureC,1)} °C`}</td><td>{row.mean7===null?'—':`${n(row.mean7,2)} MPa`}</td><td>{row.mean28===null?'—':`${n(row.mean28,2)} MPa`}</td><td>{n(row.sd28,2)}</td><td>{row.cv28===null?'—':`${n(row.cv28,1)} %`}</td><td>{row.densityMean===null?'—':n(row.densityMean,0)}</td><td><span className={`qc-status qc-status--${row.status}`}>{row.status==='overdue'?'عقب‌افتاده':row.status==='review'?'منتظر تأیید':row.status==='complete'?'تکمیل':'در جریان'}</span></td></tr>{expanded===row.seriesId&&<tr key={`${row.seriesId}-detail`} className="qc-detail-row"><td colSpan={12}><div className="qc-detail-grid"><span><small>نمونه‌بردار</small><b>{row.samplerName||'—'}</b></span><span><small>مقاومت مشخصه/هدف ثبت‌شده</small><b>{row.specifiedStrengthMpa===null?'—':`${n(row.specifiedStrengthMpa,2)} MPa`}</b></span><span><small>اسلامپ هدف</small><b>{row.targetSlumpMm===null?'—':`${n(row.targetSlumpMm,0)} mm`}</b></span><span><small>نتایج ۷ روزه</small><b>{row.strength7.length?row.strength7.map(x=>n(x,2)).join(' ، '):'—'}</b></span><span><small>نتایج ۲۸ روزه</small><b>{row.strength28.length?row.strength28.map(x=>n(x,2)).join(' ، '):'—'}</b></span><span><small>تأیید / پیش‌نویس / بدون نتیجه</small><b>{`${row.approvedCount.toLocaleString('fa-IR')} / ${row.draftCount.toLocaleString('fa-IR')} / ${row.pendingCount.toLocaleString('fa-IR')}`}</b></span></div></td></tr>}</>)}</tbody></table></div>}
+    <div className="qc-master-section"><div className="panel-heading"><div><p className="eyebrow">MASTER QC TABLE</p><h4>جدول جامع نوبت‌های نمونه‌برداری</h4><small>هر ردیف = یک نوبت نمونه‌برداری؛ مرجع ۷ روزه ۶۰٪ و مرجع ۲۸ روزه ۱۰۰٪ مقاومت مشخصه پروژه است.</small></div><span className="count-badge">{filtered.length.toLocaleString('fa-IR')}</span></div>
+      {!filtered.length?<div className="project-mini-empty">با فیلتر فعلی داده‌ای وجود ندارد.</div>:<div className="table-wrap qc-master-table"><table><thead><tr><th>تاریخ</th><th>منبع</th><th>طرح/رده</th><th>عضو</th><th>اسلامپ</th><th>دما</th><th>میانگین ۷d</th><th>مرجع ۷d</th><th>تحقق ۷d</th><th>میانگین ۲۸d</th><th>مرجع ۲۸d</th><th>تحقق ۲۸d</th><th>SD ۲۸d</th><th>CV ۲۸d</th><th>جرم حجمی</th><th>وضعیت</th></tr></thead><tbody>{filtered.map(row=><><tr key={row.seriesId} className="qc-master-row" onClick={()=>setExpanded(v=>v===row.seriesId?null:row.seriesId)}><td>{isoToPersianLocal(row.sampledAt)}</td><td>{row.sourceName}</td><td>{row.mixLabel}<small>{row.concreteClass}</small></td><td>{row.elementName}</td><td>{row.slumpMm===null?'—':`${n(row.slumpMm,0)} mm`}</td><td>{row.temperatureC===null?'—':`${n(row.temperatureC,1)} °C`}</td><td>{row.mean7===null?'—':`${n(row.mean7,2)} MPa`}</td><td>{row.reference7Mpa===null?'—':`${n(row.reference7Mpa,2)} MPa`}</td><td><span className="qc-attainment">{row.attainment7Percent===null?'—':`${n(row.attainment7Percent,1)} %`}</span></td><td>{row.mean28===null?'—':`${n(row.mean28,2)} MPa`}</td><td>{row.reference28Mpa===null?'—':`${n(row.reference28Mpa,2)} MPa`}</td><td><span className="qc-attainment">{row.attainment28Percent===null?'—':`${n(row.attainment28Percent,1)} %`}</span></td><td>{n(row.sd28,2)}</td><td>{row.cv28===null?'—':`${n(row.cv28,1)} %`}</td><td>{row.densityMean===null?'—':n(row.densityMean,0)}</td><td><span className={`qc-status qc-status--${row.status}`}>{row.status==='overdue'?'عقب‌افتاده':row.status==='review'?'منتظر تأیید':row.status==='complete'?'تکمیل':'در جریان'}</span></td></tr>{expanded===row.seriesId&&<tr key={`${row.seriesId}-detail`} className="qc-detail-row"><td colSpan={16}><div className="qc-detail-grid"><span><small>نمونه‌بردار</small><b>{row.samplerName||'—'}</b></span><span><small>مقاومت مشخصه پروژه</small><b>{reference28===null?'—':`${n(reference28,2)} MPa`}</b></span><span><small>مرجع ۷ روزه</small><b>{row.reference7Mpa===null?'—':`${n(row.reference7Mpa,2)} MPa`}</b></span><span><small>تحقق میانگین ۷ روزه</small><b>{row.attainment7Percent===null?'—':`${n(row.attainment7Percent,1)} %`}</b></span><span><small>مرجع ۲۸ روزه</small><b>{row.reference28Mpa===null?'—':`${n(row.reference28Mpa,2)} MPa`}</b></span><span><small>تحقق میانگین ۲۸ روزه</small><b>{row.attainment28Percent===null?'—':`${n(row.attainment28Percent,1)} %`}</b></span><span><small>اسلامپ هدف</small><b>{row.targetSlumpMm===null?'—':`${n(row.targetSlumpMm,0)} mm`}</b></span><span><small>نتایج ۷ روزه</small><b>{row.strength7.length?row.strength7.map(x=>`${n(x,2)} MPa`).join(' ، '):'—'}</b></span><span><small>نتایج ۲۸ روزه</small><b>{row.strength28.length?row.strength28.map(x=>`${n(x,2)} MPa`).join(' ، '):'—'}</b></span><span><small>تأیید / پیش‌نویس / بدون نتیجه</small><b>{`${row.approvedCount.toLocaleString('fa-IR')} / ${row.draftCount.toLocaleString('fa-IR')} / ${row.pendingCount.toLocaleString('fa-IR')}`}</b></span></div></td></tr>}</>)}</tbody></table></div>}
     </div>
-    <p className="project-analysis-note">Mean، SD و CV در این نما آمار توصیفی هستند. هیچ چراغ قبولی/رد یا درصد انطباق تا زمان تعریف Rule Profile دارای مرجع، نسخه و تست فعال نمی‌شود.</p>
+    <p className="project-analysis-note">مرجع ۷ روزه در این پروژه ۶۰٪ مقاومت مشخصه و مرجع ۲۸ روزه ۱۰۰٪ آن است. درصد تحقق، نسبت میانگین نتایج تأییدشده به این مرجع عملیاتی است و به‌تنهایی حکم استاندارد قبولی یا رد صادر نمی‌کند.</p>
   </section>;
 }
