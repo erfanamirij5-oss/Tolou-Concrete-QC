@@ -6,9 +6,18 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "allowJs": true,
+    "checkJs": false,
     "outDir": "dist-electron",
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts"]
+  "include": [
+    "src/main/**/*.ts",
+    "src/preload/**/*.ts",
+    "src/shared/**/*.ts",
+    "src/application/**/*.js",
+    "src/domain/**/*.js",
+    "src/infrastructure/**/*.js"
+  ]
 }
