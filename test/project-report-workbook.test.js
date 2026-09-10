@@ -28,16 +28,16 @@ test('project report workbook survives XLSX binary round-trip with stable Persia
   assert.ok(Buffer.isBuffer(bytes));
   assert.ok(bytes.length>0);
   const parsed=XLSX.read(bytes);
-  assert.deepEqual(parsed.SheetNames,['خلاصه','داده‌های روند','مقاومت برحسب سن']);
+  assert.deepEqual(parsed.SheetNames,['خلاصه مدیریتی','ریز نتایج آزمون','خلاصه نوبت‌های نمونه‌گیری','داده‌های روند','مقاومت برحسب سن']);
 
-  const summary=parsed.Sheets['خلاصه'];
+  const summary=parsed.Sheets['خلاصه مدیریتی'];
   const rows=XLSX.utils.sheet_to_json(summary,{header:1,raw:true});
-  const seriesRow=rows.find(row=>row[0]==='سری‌های نمونه‌گیری');
+  const seriesRow=rows.find(row=>row[0]==='نوبت‌های نمونه‌برداری');
   const approvedRow=rows.find(row=>row[0]==='نتایج مقاومت تأییدشده');
   assert.equal(seriesRow?.[1],1);
   assert.equal(approvedRow?.[1],1);
-  assert.equal(summary['B8']?.t,'n');
-  assert.equal(summary['B9']?.t,'n');
+  assert.equal(summary['B11']?.t,'n');
+  assert.equal(summary['B12']?.t,'n');
 
   const trend=parsed.Sheets['داده‌های روند'];
   const trendRows=XLSX.utils.sheet_to_json(trend,{header:1,raw:true});
@@ -53,7 +53,7 @@ test('project report workbook remains standards-neutral when no rule profile is 
   assert.equal(report.standards.acceptanceEvaluated,false);
   const bytes=XLSX.write(projectReportWorkbook(report),{bookType:'xlsx',type:'buffer'});
   const parsed=XLSX.read(bytes);
-  const summaryRows=XLSX.utils.sheet_to_json(parsed.Sheets['خلاصه'],{header:1,raw:true});
+  const summaryRows=XLSX.utils.sheet_to_json(parsed.Sheets['خلاصه مدیریتی'],{header:1,raw:true});
   const ruleProfileRow=summaryRows.find(row=>row[0]==='Rule Profile');
   const acceptanceRow=summaryRows.find(row=>row[0]==='ارزیابی قبولی/رد');
   assert.deepEqual(ruleProfileRow,['Rule Profile','—']);
