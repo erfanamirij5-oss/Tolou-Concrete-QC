@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ProjectWorkbench } from './ProjectWorkbench';
-import { SampleResultsPanel } from './SampleResultsPanel';
+import { ReviewWorkspace } from './ReviewWorkspace';
 import { EngineeringWorkbench } from './EngineeringWorkbench';
 import { QcPartiesWorkbench } from './QcPartiesWorkbench';
 import { AnalyticsWorkbench } from './AnalyticsWorkbench';
@@ -88,7 +88,7 @@ export function App(){
     case'fresh':return <FreshConcreteWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
     case'specimens':return <SpecimenListWorkspace refreshKey={dataVersion} onOpenResult={()=>setActiveView('results')}/>;
     case'results':return <ResultEntryWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
-    case'review':return <><section className="workspace-intro"><p className="eyebrow">کنترل کیفیت</p><h2>بررسی و تأیید نتایج</h2><p>تأیید، اصلاح، ابطال و تاریخچه نتایج فقط در این بخش انجام می‌شود.</p></section><SampleResultsPanel onChanged={dataChanged} refreshKey={dataVersion}/></>;
+    case'review':return <ReviewWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
     case'analytics':return <AnalyticsWorkbench refreshKey={dataVersion}/>;
     case'reports':return <ProjectQcReportWorkbench refreshKey={dataVersion}/>;
     case'mixes':return <EngineeringWorkbench onChanged={dataChanged} refreshKey={dataVersion}/>;
