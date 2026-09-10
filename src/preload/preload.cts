@@ -10,3 +10,7 @@ contextBridge.exposeInMainWorld('tolouSystem',Object.freeze({
   restoreBackup:()=>ipcRenderer.invoke('system:backup:restore'),
   getSeriesReport:(seriesId:string)=>ipcRenderer.invoke('system:series-report:get',seriesId)
 }));
+contextBridge.exposeInMainWorld('tolouTraceability',Object.freeze({
+  addComparisonParty:(input:{id:string;seriesId:string;partyType:'laboratory'|'person'|'consultant'|'client'|'supervisor'|'other';partyName:string;laboratoryName?:string;samplerName?:string;externalReference?:string;notes?:string})=>ipcRenderer.invoke('sampling-traceability:add-comparison-party',input),
+  listComparisonParties:(seriesId:string)=>ipcRenderer.invoke('sampling-traceability:list-comparison-parties',seriesId)
+}));
