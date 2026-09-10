@@ -25,6 +25,9 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
   if (db.prepare('PRAGMA foreign_keys').get().foreign_keys !== 1) throw new Error('کنترل ارتباط داده‌ها فعال نیست');
   if (!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId)) throw new Error('شرکت یافت نشد');
 
+  const ownedCurrent = (sampleId) => db.prepare(`SELECT r.*,s.due_at,ss.sampled_at FROM current_results r JOIN samples s ON s.id=r.sample_id
+    JOIN sampling_series ss ON ss.id=s.series_id WHERE r.sample_id=? AND ss.company_id=?`).get(sampleId,companyId);
+
   return {
     createSeries(input) {
       const id = text(input?.id, 'شناسه سری');
@@ -71,13 +74,47 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
       });
     },
 
+    requestCorrection(input) {
+      const sampleId=text(input?.sampleId,'شناسه نمونه');
+      if(!Number.isSafeInteger(input?.expectedRevision)||input.expectedRevision<1) throw new Error('شماره بازنگری معتبر نیست');
+      if(typeof input?.strengthMpa!=='number'||!Number.isFinite(input.strengthMpa)||input.strengthMpa<0||input.strengthMpa>=1e308) throw new Error('مقاومت معتبر وارد کنید');
+      const testedAt=utcTimestamp(input.testedAt); const testedBy=text(input.testedBy,'انجام‌دهنده آزمون'); const reason=text(input.reason,'علت اصلاح'); const enteredAt=utcTimestamp(clock());
+      if(testedAt>enteredAt) throw new Error('زمان آزمون نمی‌تواند در آینده باشد');
+      return atomic(db,()=>{
+        const current=ownedCurrent(sampleId);
+        if(!current) throw new Error('نتیجه متعلق به این شرکت یافت نشد');
+        if(current.revision!==input.expectedRevision) throw new Error('نتیجه تغییر کرده است؛ پرونده را دوباره باز کنید');
+        if(current.state!=='approved') throw new Error('فقط نتیجه تأییدشده از مسیر اصلاح مهندسی قابل بازنگری است');
+        if(testedAt<current.sampled_at) throw new Error('زمان آزمون پیش از نمونه‌برداری است');
+        const revision=current.revision+1;
+        db.prepare(`INSERT INTO result_revisions(sample_id,revision,strength_mpa,state,tested_at,tested_by,entered_by,entered_at,approved_by,reason)
+          VALUES(?,?,?,'draft',?,?,?,?,NULL,?)`).run(sampleId,revision,input.strengthMpa,testedAt,testedBy,actor,enteredAt,reason);
+        return {sampleId,revision,state:'draft'};
+      });
+    },
+
+    voidResult(input) {
+      const sampleId=text(input?.sampleId,'شناسه نمونه');
+      if(!Number.isSafeInteger(input?.expectedRevision)||input.expectedRevision<1) throw new Error('شماره بازنگری معتبر نیست');
+      const reason=text(input?.reason,'علت ابطال'); const enteredAt=utcTimestamp(clock());
+      return atomic(db,()=>{
+        const current=ownedCurrent(sampleId);
+        if(!current) throw new Error('نتیجه متعلق به این شرکت یافت نشد');
+        if(current.revision!==input.expectedRevision) throw new Error('نتیجه تغییر کرده است؛ پرونده را دوباره باز کنید');
+        if(current.state==='void') throw new Error('نتیجه قبلاً باطل شده است');
+        const revision=current.revision+1;
+        db.prepare(`INSERT INTO result_revisions(sample_id,revision,strength_mpa,state,tested_at,tested_by,entered_by,entered_at,approved_by,reason)
+          VALUES(?,?,NULL,'void',?,?,?,?,NULL,?)`).run(sampleId,revision,current.tested_at,current.tested_by,actor,enteredAt,reason);
+        return {sampleId,revision,state:'void'};
+      });
+    },
+
     approveDraft(input) {
       const sampleId = text(input?.sampleId, 'شناسه نمونه');
       if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error('شماره بازنگری معتبر نیست');
       const enteredAt = utcTimestamp(clock());
       return atomic(db, () => {
-        const current = db.prepare(`SELECT r.* FROM current_results r JOIN samples s ON s.id=r.sample_id
-          JOIN sampling_series ss ON ss.id=s.series_id WHERE r.sample_id=? AND ss.company_id=?`).get(sampleId,companyId);
+        const current = ownedCurrent(sampleId);
         if (!current) throw new Error('نتیجه‌ای برای تأیید یافت نشد');
         if (current.revision !== input.expectedRevision) throw new Error('نتیجه تغییر کرده است؛ پرونده را دوباره باز کنید');
         if (current.state !== 'draft') throw new Error('فقط نتیجه پیش‌نویس قابل تأیید است');
@@ -96,6 +133,15 @@ export function createLaboratoryService(db, {companyId, actor, clock = () => new
         FROM samples s JOIN sampling_series ss ON ss.id=s.series_id LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
         LEFT JOIN current_results r ON r.sample_id=s.id WHERE ss.company_id=?
         ORDER BY COALESCE(s.due_at,ss.sampled_at) DESC,s.id DESC LIMIT ?`).all(companyId,safeLimit);
+    },
+
+    listReviewQueue({limit=100}={}) {
+      const safeLimit=Number.isSafeInteger(limit)&&limit>0&&limit<=200?limit:100;
+      return db.prepare(`SELECT s.id,s.series_id,s.age_days,s.due_at,ss.kind,ss.project_id,ss.pour_id,ss.title,p.name AS project_name,
+        r.revision,r.strength_mpa,r.state,r.tested_at,r.tested_by,r.approved_by,r.reason
+        FROM current_results r JOIN samples s ON s.id=r.sample_id JOIN sampling_series ss ON ss.id=s.series_id
+        LEFT JOIN projects p ON p.id=ss.project_id AND p.company_id=ss.company_id
+        WHERE ss.company_id=? AND r.state='draft' ORDER BY r.entered_at ASC,s.id ASC LIMIT ?`).all(companyId,safeLimit);
     },
 
     listResultHistory(sampleId) {
