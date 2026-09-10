@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { PourSummary, ProjectSummary } from '../shared/ipc';
+import { PersianDateTimeInput } from './PersianDateTimeInput';
+import { isoToPersianLocal } from './jalali';
 import './project-workbench.css';
 
-function toIso(localValue: string): string {
-  const date = new Date(localValue);
-  if (!Number.isFinite(date.getTime())) throw new Error('تاریخ و زمان معتبر وارد کنید');
-  return date.toISOString();
-}
-function defaultLocalDateTime(): string {
-  const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000);
-  return now.toISOString().slice(0, 16);
-}
 const nextId=(prefix:string)=>`${prefix}-${Date.now().toString(36).toUpperCase()}`;
 
 export function ProjectWorkbench({ onChanged, refreshKey=0 }: { onChanged?: () => void; refreshKey?: number }) {
@@ -52,7 +45,8 @@ export function ProjectWorkbench({ onChanged, refreshKey=0 }: { onChanged?: () =
   async function submitPour(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form=event.currentTarget; const data=new FormData(form); setBusy(true); setMessage('');
     try {
-      const result = await window.tolou.createPour({ id:String(data.get('id')), projectId:selectedProject, occurredAt:toIso(String(data.get('occurredAt'))) });
+      const occurredAt=String(data.get('occurredAt')??''); if(!occurredAt) throw new Error('زمان بتن‌ریزی شمسی معتبر وارد کنید');
+      const result = await window.tolou.createPour({ id:String(data.get('id')), projectId:selectedProject, occurredAt });
       if (!result.ok) throw new Error(result.message);
       setMessage(`بتن‌ریزی ${result.data.id} ثبت شد.`); form.reset(); setPourId(nextId('POUR'));
       const refreshed = await window.tolou.listPours(selectedProject); if (refreshed.ok) setPours(refreshed.data); onChanged?.();
@@ -67,8 +61,8 @@ export function ProjectWorkbench({ onChanged, refreshKey=0 }: { onChanged?: () =
         <h4>پروژه جدید</h4><label>شناسه<input name="id" value={projectId} onChange={(e)=>setProjectId(e.target.value)} required /></label><label>نام پروژه<input name="name" required /></label><label>مشتری<input name="customerName" required /></label><label>آدرس<input name="address" /></label><button className="primary-button" disabled={busy}>ثبت پروژه</button>
       </form>
       <form className="workbench-form" onSubmit={submitPour}>
-        <h4>بتن‌ریزی جدید</h4><label>شناسه<input name="id" value={pourId} onChange={(e)=>setPourId(e.target.value)} required /></label><label>پروژه<select value={selectedProject} onChange={(e)=>setSelectedProject(e.target.value)} required><option value="">انتخاب پروژه</option>{projects.filter((p)=>p.archived===0).map((p)=><option key={p.id} value={p.id}>{p.name} — {p.customer_name}</option>)}</select></label><label>زمان بتن‌ریزی<input name="occurredAt" type="datetime-local" defaultValue={defaultLocalDateTime()} required /></label><button className="primary-button" disabled={busy || !selectedProject}>ثبت بتن‌ریزی</button>
-        <div className="pour-list">{pours.slice(0,4).map((pour)=><div key={pour.id}><span className="mono">{pour.id}</span><small>{new Date(pour.occurred_at).toLocaleString('fa-IR')}</small></div>)}</div>
+        <h4>بتن‌ریزی جدید</h4><label>شناسه<input name="id" value={pourId} onChange={(e)=>setPourId(e.target.value)} required /></label><label>پروژه<select value={selectedProject} onChange={(e)=>setSelectedProject(e.target.value)} required><option value="">انتخاب پروژه</option>{projects.filter((p)=>p.archived===0).map((p)=><option key={p.id} value={p.id}>{p.name} — {p.customer_name}</option>)}</select></label><label>زمان بتن‌ریزی (شمسی)<PersianDateTimeInput name="occurredAt" required /></label><button className="primary-button" disabled={busy || !selectedProject}>ثبت بتن‌ریزی</button>
+        <div className="pour-list">{pours.slice(0,4).map((pour)=><div key={pour.id}><span className="mono">{pour.id}</span><small>{isoToPersianLocal(pour.occurred_at)}</small></div>)}</div>
       </form>
     </div>
   </section>;
