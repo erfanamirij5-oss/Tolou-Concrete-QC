@@ -44,6 +44,7 @@ export function App(){
   const[dashboard,setDashboard]=useState<DashboardSummary>(emptyDashboard);
   const[dataVersion,setDataVersion]=useState(0);
   const[activeView,setActiveView]=useState<WorkspaceView>('dashboard');
+  const[samplingProjectId,setSamplingProjectId]=useState('');
 
   const refreshDashboard=useCallback(async()=>{const result=await window.tolou.dashboard();if(!result.ok)throw new Error(result.message);setDashboard(result.data);},[]);
   const dataChanged=useCallback(()=>{setDataVersion(value=>value+1);void refreshDashboard();},[refreshDashboard]);
@@ -62,6 +63,7 @@ export function App(){
   const urgent=dashboard.dueSchedule.filter(item=>item.status!=='scheduled');
   const upcoming=dashboard.dueSchedule.filter(item=>item.status==='scheduled').slice(0,8);
 
+  const goSampling=(projectId?:string)=>{setSamplingProjectId(projectId??'');setActiveView('sampling');};
   const renderScheduleRow=(item:DashboardSummary['dueSchedule'][number])=>{
     const age=item.ageDays===null?'شاهد':`${item.ageDays.toLocaleString('fa-IR')} روزه`;
     const status=item.status==='overdue'?'موعد گذشته':item.status==='warning'?'تا ۴۸ ساعت':'برنامه‌ریزی‌شده';
@@ -74,15 +76,15 @@ export function App(){
       <section className="metrics-grid" aria-label="وضعیت امروز">{metrics.map(metric=><article className="metric-card glass" key={metric.label}><div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone??'neutral'}`}/></div><strong>{metric.value}</strong><small>{metric.hint}</small></article>)}</section>
       <section className="quick-actions" aria-label="شروع سریع">
         <button className="quick-action" onClick={()=>setActiveView('projects')}><ProjectsIcon/><span><strong>پروژه و بتن‌ریزی</strong><small>شروع یک پرونده عملیاتی</small></span></button>
-        <button className="quick-action" onClick={()=>setActiveView('sampling')}><SamplingIcon/><span><strong>ثبت نمونه‌برداری</strong><small>ایجاد خودکار نمونه‌های ۷ و ۲۸ روزه</small></span></button>
+        <button className="quick-action" onClick={()=>goSampling()}><SamplingIcon/><span><strong>ثبت نمونه‌برداری</strong><small>ایجاد خودکار نمونه‌های ۷ و ۲۸ روزه</small></span></button>
         <button className="quick-action" onClick={()=>setActiveView('results')}><ResultIcon/><span><strong>ثبت نتیجه</strong><small>ثبت پیش‌نویس آزمون مقاومت</small></span></button>
         <button className="quick-action" onClick={()=>setActiveView('review')}><ReviewIcon/><span><strong>بررسی و تأیید</strong><small>رسیدگی به نتایج ثبت‌شده</small></span></button>
       </section>
       <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">نیازمند اقدام</p><h3>موعدهای فوری آزمایش</h3></div><button className="text-button" onClick={()=>setActiveView('specimens')}>مشاهده همه نمونه‌ها</button></div>{urgent.length===0?<div className="due-empty">در حال حاضر نمونه عقب‌افتاده یا دارای موعد کمتر از ۴۸ ساعت وجود ندارد.</div>:<div className="due-list">{urgent.map(renderScheduleRow)}</div>}</section>
       <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">برنامه بعدی</p><h3>موعدهای آینده</h3></div></div>{upcoming.length===0?<div className="due-empty">موعد آینده‌ای ثبت نشده است.</div>:<div className="due-list">{upcoming.map(renderScheduleRow)}</div>}</section>
     </>;
-    case'projects':return <><section className="workspace-intro"><p className="eyebrow">عملیات</p><h2>پروژه‌ها و بتن‌ریزی‌ها</h2><p>پروژه را ایجاد کنید، بتن‌ریزی را ثبت کنید و سپس از بخش «نمونه‌برداری» ادامه دهید.</p></section><ProjectWorkbench onChanged={dataChanged} refreshKey={dataVersion}/></>;
-    case'sampling':return <SamplingWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
+    case'projects':return <><section className="workspace-intro"><p className="eyebrow">عملیات</p><h2>پروژه‌ها و بتن‌ریزی‌ها</h2><p>پروژه را ایجاد کنید، بتن‌ریزی را ثبت کنید و مستقیماً نمونه‌برداری را شروع کنید.</p></section><ProjectWorkbench onChanged={dataChanged} refreshKey={dataVersion} onStartSampling={goSampling}/></>;
+    case'sampling':return <SamplingWorkspace onChanged={dataChanged} refreshKey={dataVersion} initialProjectId={samplingProjectId}/>;
     case'fresh':return <FreshConcreteWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
     case'specimens':return <SpecimenListWorkspace refreshKey={dataVersion} onOpenResult={()=>setActiveView('results')}/>;
     case'results':return <ResultEntryWorkspace onChanged={dataChanged} refreshKey={dataVersion}/>;
@@ -93,5 +95,5 @@ export function App(){
     case'settings':return <><section className="workspace-intro"><p className="eyebrow">سیستم</p><h2>تنظیمات و اطلاعات پایه</h2><p>مشتری‌ها، منابع بتن و آزمایشگاه‌ها داده‌های مرجع هستند و از عملیات روزمره جدا شده‌اند.</p></section><div className="settings-note">اطلاعات پایه QC در این بخش مدیریت می‌شود. تنظیمات شرکت و مجوزها در مراحل بعدی تکمیل خواهند شد.</div><div className="master-data-shell"><QcPartiesWorkbench onChanged={dataChanged} refreshKey={dataVersion}/></div></>;
   }};
 
-  return <main className="app-shell"><aside className="sidebar glass glass--dark" aria-label="ناوبری اصلی"><div className="brand-block"><div className="brand-mark" aria-hidden="true">T</div><div><strong>طلوع</strong><span>کنترل کیفیت بتن</span></div></div><nav>{NAV_SECTIONS.map(section=><div className="nav-section" key={section.label||'home'}>{section.label&&<div className="nav-section-label">{section.label}</div>}{section.items.map(item=>{const Icon=item.icon;return <button key={item.id} type="button" className={`nav-item ${activeView===item.id?'nav-item--active':''}`} aria-current={activeView===item.id?'page':undefined} onClick={()=>setActiveView(item.id)}><Icon/>{item.label}</button>;})}</div>)}</nav><div className="sidebar-footer"><div className="connection"><span className={`dot dot--${health}`}/>{health==='ok'?'سامانه آماده است':health==='error'?'خطای ارتباط داخلی':'در حال بررسی'}</div><button type="button" className={`nav-item ${activeView==='settings'?'nav-item--active':''}`} onClick={()=>setActiveView('settings')}><SettingsIcon/>تنظیمات</button></div></aside><section className="workspace"><header className="topbar glass"><div><p className="eyebrow">Tolou Concrete QC</p><h1>{activeTitle}</h1></div><div className="topbar-actions"><div className="date-chip">{persianDate}</div></div></header><div className="content-grid">{renderWorkspace()}</div></section></main>;
+  return <main className="app-shell"><aside className="sidebar glass glass--dark" aria-label="ناوبری اصلی"><div className="brand-block"><div className="brand-mark" aria-hidden="true">T</div><div><strong>طلوع</strong><span>کنترل کیفیت بتن</span></div></div><nav>{NAV_SECTIONS.map(section=><div className="nav-section" key={section.label||'home'}>{section.label&&<div className="nav-section-label">{section.label}</div>}{section.items.map(item=>{const Icon=item.icon;return <button key={item.id} type="button" className={`nav-item ${activeView===item.id?'nav-item--active':''}`} aria-current={activeView===item.id?'page':undefined} onClick={()=>item.id==='sampling'?goSampling():setActiveView(item.id)}><Icon/>{item.label}</button>;})}</div>)}</nav><div className="sidebar-footer"><div className="connection"><span className={`dot dot--${health}`}/>{health==='ok'?'سامانه آماده است':health==='error'?'خطای ارتباط داخلی':'در حال بررسی'}</div><button type="button" className={`nav-item ${activeView==='settings'?'nav-item--active':''}`} onClick={()=>setActiveView('settings')}><SettingsIcon/>تنظیمات</button></div></aside><section className="workspace"><header className="topbar glass"><div><p className="eyebrow">Tolou Concrete QC</p><h1>{activeTitle}</h1></div><div className="topbar-actions"><div className="date-chip">{persianDate}</div></div></header><div className="content-grid">{renderWorkspace()}</div></section></main>;
 }
