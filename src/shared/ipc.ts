@@ -7,6 +7,7 @@ export const IPC_CHANNELS = {
   savePourSpecification:'engineering:save-pour-specification', getPourSpecification:'engineering:get-pour-specification',
   createCustomer:'qc-parties:create-customer', listCustomers:'qc-parties:list-customers', createConcreteSource:'qc-parties:create-concrete-source', listConcreteSources:'qc-parties:list-concrete-sources',
   createTestingLaboratory:'qc-parties:create-testing-laboratory', listTestingLaboratories:'qc-parties:list-testing-laboratories', registerExternalResult:'qc-parties:register-external-result', listExternalResults:'qc-parties:list-external-results',
+  addExternalAttachment:'attachments:add-external-result', listExternalAttachments:'attachments:list-external-result',
 } as const;
 export interface AppInfo { name:string; version:string; platform:string; locale:string; }
 export interface HealthStatus { ok:true; timestamp:string; database:'ready'; }
@@ -47,6 +48,8 @@ export interface CreateTestingLaboratoryInput {id:string;code:string;name:string
 export interface TestingLaboratorySummary {id:string;code:string;name:string;lab_type:'internal'|'external';archived:number;}
 export interface RegisterExternalResultInput {id:string;sampleId:string;testingLaboratoryId:string;externalEventId:string;strengthMpa?:number|null;testedAt?:string|null;receivedAt?:string|null;notes?:string;}
 export interface ExternalResultSummary {id:string;sample_id:string;testing_laboratory_id:string;laboratory_name:string;external_event_id:string;strength_mpa:number|null;tested_at:string|null;received_at:string;received_by:string;notes:string;}
+export interface AttachmentSummary {id:string;external_result_event_id:string;file_name:string;media_type:string;sha256:string;size_bytes:number;added_at:string;added_by:string;}
+export interface AddAttachmentResult {cancelled:boolean;attachment?:{id:string;eventId:string;fileName:string;mediaType:string;sha256:string;sizeBytes:number};}
 export type IpcResult<T>={ok:true;data:T}|{ok:false;message:string};
 export interface TolouBridge {
  getAppInfo():Promise<AppInfo>; health():Promise<HealthStatus>;
@@ -62,4 +65,5 @@ export interface TolouBridge {
  createConcreteSource(input:CreateConcreteSourceInput):Promise<IpcResult<{id:string;code:string;name:string}>>; listConcreteSources():Promise<IpcResult<ConcreteSourceSummary[]>>;
  createTestingLaboratory(input:CreateTestingLaboratoryInput):Promise<IpcResult<{id:string;code:string;name:string}>>; listTestingLaboratories():Promise<IpcResult<TestingLaboratorySummary[]>>;
  registerExternalResult(input:RegisterExternalResultInput):Promise<IpcResult<{id:string;sampleId:string;externalEventId:string}>>; listExternalResults(limit?:number):Promise<IpcResult<ExternalResultSummary[]>>;
+ addExternalAttachment(eventId:string):Promise<IpcResult<AddAttachmentResult>>; listExternalAttachments(eventId:string):Promise<IpcResult<AttachmentSummary[]>>;
 }
