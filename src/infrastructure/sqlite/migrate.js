@@ -9,6 +9,7 @@ const migrationFiles = [
   [5, './005-specimen-physical-measurements.sql'],
   [6, './006-fresh-concrete-measurements.sql'],
   [7, './007-pour-qc-context.sql'],
+  [8, './008-company-profile.sql'],
 ];
 
 function loadMigrations() {
