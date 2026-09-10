@@ -1,6 +1,9 @@
 name: Apply IPC sender hardening
 on:
-  workflow_dispatch:
+  push:
+    branches: [feature/windows-desktop-foundation]
+    paths:
+      - .github/workflows/apply-ipc-hardening.yml
 permissions:
   contents: write
 jobs:
