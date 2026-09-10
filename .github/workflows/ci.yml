@@ -1,4 +1,4 @@
-name: Windows foundation checks
+name: Windows desktop checks
 on:
   push:
     branches: [develop, 'feature/**']
@@ -6,12 +6,16 @@ on:
 permissions:
   contents: read
 jobs:
-  foundation:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
+          cache: npm
+      - run: npm install --no-audit --no-fund
       - run: npm run check
       - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
