@@ -3,6 +3,7 @@ export default {
     asar: true,
     name: 'Tolou Concrete QC',
     executableName: 'TolouConcreteQC',
+    icon: 'assets/icons/Tolou-Concrete-QC.ico',
     prune: true,
     ignore: [
       /^\/\.git($|\/)/,
@@ -23,6 +24,7 @@ export default {
         authors: 'Engineer Erfan Amiri',
         description: 'Tolou Concrete QC — offline Windows concrete quality-control suite',
         setupExe: 'Tolou-Concrete-QC-Setup.exe',
+        setupIcon: 'assets/icons/Tolou-Concrete-QC.ico',
         noMsi: true
       }
     }
