@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const windowsIcon = path.resolve('assets', 'icons', 'Tolou-Concrete-QC.ico');
 
@@ -31,5 +33,15 @@ export default {
         noMsi: true
       }
     }
+  ],
+  plugins: [
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true
+    })
   ]
 };
