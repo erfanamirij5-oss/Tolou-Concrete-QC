@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { migrate } from '../infrastructure/sqlite/migrate.js';
 import { createLaboratoryService } from '../application/laboratory.js';
 import { createProjectService } from '../application/projects.js';
+import { createEngineeringService } from '../application/engineering.js';
 
 const COMPANY_ID = 'tolou-local-company';
 const DEFAULT_COMPANY_NAME = 'شرکت شما';
@@ -11,11 +12,13 @@ const LOCAL_ACTOR = 'کاربر محلی';
 
 export type LaboratoryService = ReturnType<typeof createLaboratoryService>;
 export type ProjectService = ReturnType<typeof createProjectService>;
+export type EngineeringService = ReturnType<typeof createEngineeringService>;
 
 export interface DatabaseRuntime {
   db: DatabaseSync;
   laboratory: LaboratoryService;
   projects: ProjectService;
+  engineering: EngineeringService;
 }
 
 export function createDatabaseRuntime(): DatabaseRuntime {
@@ -28,5 +31,6 @@ export function createDatabaseRuntime(): DatabaseRuntime {
     db,
     laboratory: createLaboratoryService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
     projects: createProjectService(db, {companyId: COMPANY_ID}),
+    engineering: createEngineeringService(db, {companyId: COMPANY_ID, actor: LOCAL_ACTOR}),
   };
 }
