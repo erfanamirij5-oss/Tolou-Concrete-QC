@@ -1,0 +1,30 @@
+name: Lock Electron fuse dependencies
+on:
+  push:
+    branches: ['feature/windows-desktop-foundation']
+    paths: ['.github/workflows/lock-fuses.yml']
+permissions:
+  contents: write
+jobs:
+  lock:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/windows-desktop-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Lock exact release dependencies
+        run: npm install --save-dev --save-exact @electron-forge/plugin-fuses@7.11.2 @electron/fuses@2.1.2 --no-audit --no-fund
+      - name: Commit lockfile update
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "Lock Electron fuse release dependencies"
+            git push origin HEAD:feature/windows-desktop-foundation
+          }
