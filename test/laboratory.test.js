@@ -43,6 +43,6 @@ test('company isolation and approved result gate prevent unauthorized draft repl
 });
 test('approval appends immutable approved revision and live list reflects it',t=>{
   const {db,service}=fixture(t); service.createSeries(internal); service.saveDraft(draft); const approval=service.approveDraft({sampleId:'s1-1',expectedRevision:1});
-  assert.deepEqual(approval,{sampleId:'s1-1',revision:2,state:'approved'}); assert.equal(service.listSamples()[0].state,'approved'); assert.equal(service.listResultHistory('s1-1').length,2);
+  assert.deepEqual(approval,{sampleId:'s1-1',revision:2,state:'approved'}); const approved=service.listSamples().find((sample)=>sample.id==='s1-1'); assert.equal(approved?.state,'approved'); assert.equal(service.listResultHistory('s1-1').length,2);
   assert.equal(db.prepare('SELECT approved_by FROM current_results WHERE sample_id=?').get('s1-1').approved_by,'کاربر نشست'); assert.throws(()=>service.approveDraft({sampleId:'s1-1',expectedRevision:1}));
 });
