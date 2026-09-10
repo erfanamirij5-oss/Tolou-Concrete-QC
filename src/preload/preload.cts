@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('tolouSystem',Object.freeze({
   getCompanyProfile:()=>ipcRenderer.invoke('system:company-profile:get'),
   saveCompanyProfile:(input:{companyName:string;qcManagerName:string;managingDirectorName:string})=>ipcRenderer.invoke('system:company-profile:save',input),
   createBackup:()=>ipcRenderer.invoke('system:backup:create'),
-  restoreBackup:()=>ipcRenderer.invoke('system:backup:restore')
+  restoreBackup:()=>ipcRenderer.invoke('system:backup:restore'),
+  getSeriesReport:(seriesId:string)=>ipcRenderer.invoke('system:series-report:get',seriesId)
 }));
