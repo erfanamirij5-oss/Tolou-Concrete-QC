@@ -2,6 +2,8 @@ export const IPC_CHANNELS = {
   appInfo:'app:info', health:'app:health', createSeries:'laboratory:create-series', listSeries:'laboratory:list-series', saveDraft:'laboratory:save-draft',
   listSamples:'laboratory:list-samples', approveDraft:'laboratory:approve-draft', resultHistory:'laboratory:result-history',
   createProject:'projects:create', listProjects:'projects:list', createPour:'pours:create', listPours:'pours:list', dashboard:'dashboard:summary',
+  createMixDesign:'engineering:create-mix-design', listMixDesigns:'engineering:list-mix-designs', createMixVersion:'engineering:create-mix-version', listMixVersions:'engineering:list-mix-versions',
+  savePourSpecification:'engineering:save-pour-specification', getPourSpecification:'engineering:get-pour-specification',
 } as const;
 export interface AppInfo { name:string; version:string; platform:string; locale:string; }
 export interface HealthStatus { ok:true; timestamp:string; database:'ready'; }
@@ -22,6 +24,15 @@ export interface ProjectSummary {id:string;name:string;customer_name:string;addr
 export interface CreatePourInput {id:string;projectId:string;occurredAt:string;}
 export interface PourSummary {id:string;project_id:string;occurred_at:string;}
 export interface DashboardSummary {activeProjects:number;totalSeries:number;pendingResults:number;draftResults:number;}
+export interface CreateMixDesignInput {id:string;code:string;title:string;}
+export interface MixDesignSummary {id:string;code:string;title:string;archived:number;}
+export interface CreateMixVersionInput {
+ id:string;mixDesignId:string;revision?:number;targetStrengthMpa?:number|null;maxWaterCementRatio?:number|null;targetSlumpMm?:number|null;nominalMaxAggregateMm?:number|null;
+ cementKgM3?:number|null;waterKgM3?:number|null;fineAggregateKgM3?:number|null;coarseAggregateKgM3?:number|null;scmKgM3?:number|null;admixtureKgM3?:number|null;notes?:string;
+}
+export interface MixVersionSummary {id:string;mix_design_id:string;revision:number;target_strength_mpa:number|null;max_water_cement_ratio:number|null;target_slump_mm:number|null;nominal_max_aggregate_mm:number|null;cement_kg_m3:number|null;water_kg_m3:number|null;fine_aggregate_kg_m3:number|null;coarse_aggregate_kg_m3:number|null;scm_kg_m3:number|null;admixture_kg_m3:number|null;notes:string;created_at:string;created_by:string;}
+export interface SavePourSpecificationInput {pourId:string;projectId:string;mixDesignVersionId?:string|null;elementName?:string;concreteClass?:string;specifiedStrengthMpa?:number|null;targetSlumpMm?:number|null;nominalMaxAggregateMm?:number|null;exposureClass?:string;placementMethod?:string;plannedVolumeM3?:number|null;notes?:string;}
+export interface PourSpecification {pour_id:string;company_id:string;project_id:string;mix_design_version_id:string|null;element_name:string;concrete_class:string;specified_strength_mpa:number|null;target_slump_mm:number|null;nominal_max_aggregate_mm:number|null;exposure_class:string;placement_method:string;planned_volume_m3:number|null;notes:string;mix_code:string|null;mix_title:string|null;mix_revision:number|null;}
 export type IpcResult<T>={ok:true;data:T}|{ok:false;message:string};
 export interface TolouBridge {
  getAppInfo():Promise<AppInfo>; health():Promise<HealthStatus>;
@@ -29,4 +40,7 @@ export interface TolouBridge {
  listSamples(limit?:number):Promise<IpcResult<SampleSummary[]>>; approveDraft(input:ApproveDraftInput):Promise<IpcResult<ApprovalResult>>; resultHistory(sampleId:string):Promise<IpcResult<ResultRevision[]>>;
  createProject(input:CreateProjectInput):Promise<IpcResult<{id:string}>>; listProjects():Promise<IpcResult<ProjectSummary[]>>;
  createPour(input:CreatePourInput):Promise<IpcResult<{id:string}>>; listPours(projectId:string):Promise<IpcResult<PourSummary[]>>; dashboard():Promise<IpcResult<DashboardSummary>>;
+ createMixDesign(input:CreateMixDesignInput):Promise<IpcResult<{id:string;code:string;title:string}>>; listMixDesigns():Promise<IpcResult<MixDesignSummary[]>>;
+ createMixVersion(input:CreateMixVersionInput):Promise<IpcResult<{id:string;mixDesignId:string;revision:number}>>; listMixVersions(mixDesignId:string):Promise<IpcResult<MixVersionSummary[]>>;
+ savePourSpecification(input:SavePourSpecificationInput):Promise<IpcResult<{pourId:string;projectId:string;mixDesignVersionId:string|null}>>; getPourSpecification(pourId:string):Promise<IpcResult<PourSpecification|null>>;
 }
