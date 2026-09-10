@@ -1,23 +1,52 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
+const migrationFiles = [
+  [1, './001-foundation.sql'],
+];
+
+function loadMigrations() {
+  return migrationFiles.map(([version, file]) => {
+    const sql = readFileSync(new URL(file, import.meta.url), 'utf8');
+    const checksum = createHash('sha256').update(sql).digest('hex');
+    return { version, sql, checksum };
+  });
+}
+
+function assertMigrationPlan(migrations) {
+  for (let index = 0; index < migrations.length; index += 1) {
+    const expected = index + 1;
+    if (migrations[index].version !== expected) throw new Error('ترتیب نسخه‌های پایگاه داده معتبر نیست');
+  }
+}
+
 // Driver-independent migration interface: db.exec(), db.prepare().get/all/run().
-// Node's SQLite driver is used for verification; the desktop driver is not locked yet.
 export function migrate(db) {
-  const sql = readFileSync(new URL('./001-foundation.sql', import.meta.url), 'utf8');
-  const checksum = createHash('sha256').update(sql).digest('hex');
+  const migrations = loadMigrations();
+  assertMigrationPlan(migrations);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
   if (db.prepare('PRAGMA foreign_keys').get().foreign_keys !== 1) throw new Error('کنترل ارتباط داده‌ها فعال نشد');
+
   db.exec('BEGIN IMMEDIATE');
   try {
     db.exec('CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL) STRICT');
-    const versions = db.prepare('SELECT version,checksum FROM schema_migrations ORDER BY version').all();
-    if (versions.some(row => row.version !== 1)) throw new Error('نسخه پایگاه داده با برنامه سازگار نیست');
-    if (versions.length) {
-      if (versions[0].checksum !== checksum) throw new Error('تعریف نسخه پایگاه داده تغییر کرده است');
-    } else {
-      db.exec(sql);
-      db.prepare('INSERT INTO schema_migrations VALUES(?,?)').run(1,checksum);
+    const applied = db.prepare('SELECT version,checksum FROM schema_migrations ORDER BY version').all();
+    const latestKnown = migrations.at(-1)?.version ?? 0;
+
+    if (applied.some((row) => row.version > latestKnown)) throw new Error('نسخه پایگاه داده از برنامه جدیدتر است');
+
+    for (let index = 0; index < applied.length; index += 1) {
+      const expectedVersion = index + 1;
+      const row = applied[index];
+      if (row.version !== expectedVersion) throw new Error('تاریخچه نسخه‌های پایگاه داده ناقص است');
+      const definition = migrations[index];
+      if (!definition || row.checksum !== definition.checksum) throw new Error('تعریف نسخه پایگاه داده تغییر کرده است');
+    }
+
+    const insertMigration = db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)');
+    for (const migration of migrations.slice(applied.length)) {
+      db.exec(migration.sql);
+      insertMigration.run(migration.version, migration.checksum);
     }
     db.exec('COMMIT');
   } catch (error) {
