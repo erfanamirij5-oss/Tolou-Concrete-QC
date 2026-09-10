@@ -11,7 +11,7 @@
     "build": "npm run typecheck && vite build && tsc -p tsconfig.electron.json && node scripts/copy-electron-assets.mjs",
     "start": "electron .",
     "test": "node --test",
-    "check": "node --check src/domain/sampling.js && node --check src/domain/records.js && node --check src/application/laboratory.js && node --check src/application/projects.js && node --check src/application/engineering.js && node --check src/infrastructure/sqlite/migrate.js && node --check scripts/copy-electron-assets.mjs",
+    "check": "node --check src/domain/sampling.js && node --check src/domain/records.js && node --check src/application/laboratory.js && node --check src/application/projects.js && node --check src/application/engineering.js && node --check src/application/qc-parties.js && node --check src/infrastructure/sqlite/migrate.js && node --check scripts/copy-electron-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.electron.json --noEmit"
   },
   "engines": {"node": ">=24"},
