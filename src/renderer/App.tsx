@@ -18,6 +18,18 @@ type Metric = { label: string; value: string; hint: string; tone?: 'ok' | 'warn'
 type WorkspaceView = 'dashboard'|'projects'|'sampling'|'fresh'|'specimens'|'results'|'review'|'analytics'|'reports'|'mixes'|'settings';
 type NavItem = { id: WorkspaceView; label: string; title: string; icon: typeof DashboardIcon };
 type NavSection = { label: string; items: NavItem[] };
+type DueItem = DashboardSummary['dueSchedule'][number];
+type DueGroup = {
+  key:string;
+  projectLabel:string;
+  kind:DueItem['kind'];
+  projectId:string|null;
+  ageDays:number|null;
+  status:DueItem['status'];
+  nearestDueAt:string;
+  latestSampledAt:string;
+  count:number;
+};
 
 const NAV_SECTIONS:NavSection[]=[
   {label:'',items:[{id:'dashboard',label:'داشبورد',title:'داشبورد کنترل کیفیت',icon:DashboardIcon}]},
@@ -38,6 +50,27 @@ const NAV_SECTIONS:NavSection[]=[
 
 const emptyDashboard:DashboardSummary={activeProjects:0,totalSeries:0,pendingResults:0,draftResults:0,dueSoonCount:0,overdueCount:0,dueSchedule:[]};
 
+function groupDueItems(items:DueItem[]):DueGroup[]{
+  const groups=new Map<string,DueGroup>();
+  for(const item of items){
+    const projectLabel=item.kind==='customer'
+      ? (item.projectName??'پروژه بدون نام')
+      : `کنترل داخلی${item.title?` — ${item.title}`:''}`;
+    const ownerKey=item.kind==='customer'?(item.projectId??projectLabel):(item.title??item.seriesId);
+    const ageKey=item.ageDays===null?'witness':String(item.ageDays);
+    const key=`${item.kind}|${ownerKey}|${ageKey}|${item.status}`;
+    const current=groups.get(key);
+    if(!current){
+      groups.set(key,{key,projectLabel,kind:item.kind,projectId:item.projectId,ageDays:item.ageDays,status:item.status,nearestDueAt:item.dueAt,latestSampledAt:item.sampledAt,count:1});
+      continue;
+    }
+    current.count+=1;
+    if(item.dueAt<current.nearestDueAt)current.nearestDueAt=item.dueAt;
+    if(item.sampledAt>current.latestSampledAt)current.latestSampledAt=item.sampledAt;
+  }
+  return [...groups.values()].sort((a,b)=>a.nearestDueAt.localeCompare(b.nearestDueAt));
+}
+
 export function App(){
   const[clock,setClock]=useState(new Date());
   const[health,setHealth]=useState<'checking'|'ok'|'error'>('checking');
@@ -50,29 +83,37 @@ export function App(){
   const dataChanged=useCallback(()=>{setDataVersion(value=>value+1);void refreshDashboard();},[refreshDashboard]);
   useEffect(()=>{const timer=window.setInterval(()=>setClock(new Date()),60_000);Promise.all([window.tolou.health(),refreshDashboard()]).then(()=>setHealth('ok')).catch(()=>setHealth('error'));return()=>window.clearInterval(timer);},[refreshDashboard]);
 
+  const groupedDue=useMemo(()=>groupDueItems(dashboard.dueSchedule),[dashboard.dueSchedule]);
+  const urgentGroups=groupedDue.filter(item=>item.status!=='scheduled');
+  const upcomingGroups=groupedDue.filter(item=>item.status==='scheduled').slice(0,8);
+  const warningProjectCount=new Set(groupedDue.filter(item=>item.status==='warning').map(item=>`${item.kind}|${item.projectId??item.projectLabel}`)).size;
+  const overdueProjectCount=new Set(groupedDue.filter(item=>item.status==='overdue').map(item=>`${item.kind}|${item.projectId??item.projectLabel}`)).size;
+
   const metrics:Metric[]=useMemo(()=>[
-    {label:'موعد تا ۴۸ ساعت',value:dashboard.dueSoonCount.toLocaleString('fa-IR'),hint:'نیازمند آماده‌سازی',tone:dashboard.dueSoonCount?'warn':'ok'},
-    {label:'موعد گذشته',value:dashboard.overdueCount.toLocaleString('fa-IR'),hint:'نیازمند اقدام فوری',tone:dashboard.overdueCount?'danger':'ok'},
+    {label:'پروژه با موعد تا ۴۸ ساعت',value:warningProjectCount.toLocaleString('fa-IR'),hint:`${dashboard.dueSoonCount.toLocaleString('fa-IR')} نمونه نزدیک موعد`,tone:dashboard.dueSoonCount?'warn':'ok'},
+    {label:'پروژه دارای تأخیر',value:overdueProjectCount.toLocaleString('fa-IR'),hint:`${dashboard.overdueCount.toLocaleString('fa-IR')} نمونه عقب‌افتاده`,tone:dashboard.overdueCount?'danger':'ok'},
     {label:'منتظر نتیجه',value:dashboard.pendingResults.toLocaleString('fa-IR'),hint:'نمونه‌های بدون نتیجه',tone:dashboard.pendingResults?'warn':'ok'},
     {label:'منتظر تأیید',value:dashboard.draftResults.toLocaleString('fa-IR'),hint:'پیش‌نویس‌های ثبت‌شده',tone:dashboard.draftResults?'warn':'ok'},
-  ],[dashboard]);
+  ],[dashboard,warningProjectCount,overdueProjectCount]);
 
   const persianDate=useMemo(()=>new Intl.DateTimeFormat('fa-IR-u-ca-persian',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'}).format(clock),[clock]);
   const flatItems=NAV_SECTIONS.flatMap(section=>section.items);
   const activeTitle=activeView==='settings'?'تنظیمات و اطلاعات پایه':flatItems.find(item=>item.id===activeView)?.title??'داشبورد کنترل کیفیت';
-  const urgent=dashboard.dueSchedule.filter(item=>item.status!=='scheduled');
-  const upcoming=dashboard.dueSchedule.filter(item=>item.status==='scheduled').slice(0,8);
 
   const goSampling=(projectId?:string)=>{setSamplingProjectId(projectId??'');setActiveView('sampling');};
-  const renderScheduleRow=(item:DashboardSummary['dueSchedule'][number])=>{
-    const age=item.ageDays===null?'شاهد':`${item.ageDays.toLocaleString('fa-IR')} روزه`;
-    const status=item.status==='overdue'?'موعد گذشته':item.status==='warning'?'تا ۴۸ ساعت':'برنامه‌ریزی‌شده';
-    return <button type="button" className={`due-row due-row--${item.status}`} key={item.sampleId} onClick={()=>setActiveView('results')}><span><strong>{age}</strong><small>{item.projectName??item.title??'نمونه آزمایشگاه'}</small></span><span><strong>{isoToPersianLocal(item.dueAt)}</strong><small>نمونه‌برداری: {isoToPersianLocal(item.sampledAt)}</small></span><span className="due-status">{status}</span></button>;
+  const renderDueGroup=(group:DueGroup)=>{
+    const age=group.ageDays===null?'نمونه شاهد':`نمونه‌های ${group.ageDays.toLocaleString('fa-IR')} روزه`;
+    const status=group.status==='overdue'?'موعد گذشته':group.status==='warning'?'موعد در ۴۸ ساعت آینده':'برنامه آینده';
+    return <button type="button" className={`due-row due-row--${group.status}`} key={group.key} onClick={()=>setActiveView('results')}>
+      <span><strong>{group.projectLabel}</strong><small>{age} · {group.count.toLocaleString('fa-IR')} نمونه</small></span>
+      <span><strong>{status}</strong><small>نزدیک‌ترین موعد: {isoToPersianLocal(group.nearestDueAt)}</small></span>
+      <span className="due-status">{group.kind==='customer'?'پروژه مشتری':'کنترل داخلی'}</span>
+    </button>;
   };
 
   const renderWorkspace=()=>{switch(activeView){
     case'dashboard':return <>
-      <section className="workspace-intro"><p className="eyebrow eyebrow--accent">امروز</p><h2>مواردی که الان نیاز به توجه دارند</h2><p>داشبورد فقط کارهای جاری را نشان می‌دهد؛ ثبت اطلاعات، تحلیل و گزارش هرکدام در بخش مستقل انجام می‌شوند.</p></section>
+      <section className="workspace-intro"><p className="eyebrow eyebrow--accent">امروز</p><h2>مواردی که الان نیاز به توجه دارند</h2><p>یادآورها بر اساس پروژه و سن آزمون گروه‌بندی می‌شوند تا به‌جای دیدن تک‌تک نمونه‌ها، وضعیت واقعی هر پروژه را یکجا ببینید.</p></section>
       <section className="metrics-grid" aria-label="وضعیت امروز">{metrics.map(metric=><article className="metric-card glass" key={metric.label}><div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone??'neutral'}`}/></div><strong>{metric.value}</strong><small>{metric.hint}</small></article>)}</section>
       <section className="quick-actions" aria-label="شروع سریع">
         <button className="quick-action" onClick={()=>setActiveView('projects')}><ProjectsIcon/><span><strong>پروژه و بتن‌ریزی</strong><small>شروع یک پرونده عملیاتی</small></span></button>
@@ -80,8 +121,8 @@ export function App(){
         <button className="quick-action" onClick={()=>setActiveView('results')}><ResultIcon/><span><strong>ثبت نتیجه</strong><small>ثبت پیش‌نویس آزمون مقاومت</small></span></button>
         <button className="quick-action" onClick={()=>setActiveView('review')}><ReviewIcon/><span><strong>بررسی و تأیید</strong><small>رسیدگی به نتایج ثبت‌شده</small></span></button>
       </section>
-      <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">نیازمند اقدام</p><h3>موعدهای فوری آزمایش</h3></div><button className="text-button" onClick={()=>setActiveView('specimens')}>مشاهده همه نمونه‌ها</button></div>{urgent.length===0?<div className="due-empty">در حال حاضر نمونه عقب‌افتاده یا دارای موعد کمتر از ۴۸ ساعت وجود ندارد.</div>:<div className="due-list">{urgent.map(renderScheduleRow)}</div>}</section>
-      <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">برنامه بعدی</p><h3>موعدهای آینده</h3></div></div>{upcoming.length===0?<div className="due-empty">موعد آینده‌ای ثبت نشده است.</div>:<div className="due-list">{upcoming.map(renderScheduleRow)}</div>}</section>
+      <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">یادآور پروژه‌ها</p><h3>موعدهای فوری و ۴۸ ساعت آینده</h3></div><button className="text-button" onClick={()=>setActiveView('specimens')}>مشاهده جزئیات نمونه‌ها</button></div>{urgentGroups.length===0?<div className="due-empty">در حال حاضر پروژه‌ای با نمونه عقب‌افتاده یا دارای موعد کمتر از ۴۸ ساعت وجود ندارد.</div>:<div className="due-list">{urgentGroups.map(renderDueGroup)}</div>}</section>
+      <section className="panel glass panel--wide due-panel"><div className="panel-heading"><div><p className="eyebrow">برنامه پروژه‌ها</p><h3>موعدهای بعدی ۷ و ۲۸ روزه</h3></div></div>{upcomingGroups.length===0?<div className="due-empty">برای پروژه‌ها موعد آینده‌ای ثبت نشده است.</div>:<div className="due-list">{upcomingGroups.map(renderDueGroup)}</div>}</section>
     </>;
     case'projects':return <><section className="workspace-intro"><p className="eyebrow">عملیات</p><h2>پروژه‌ها و بتن‌ریزی‌ها</h2><p>پروژه را ایجاد کنید، بتن‌ریزی را ثبت کنید و مستقیماً نمونه‌برداری را شروع کنید.</p></section><ProjectWorkbench onChanged={dataChanged} refreshKey={dataVersion} onStartSampling={goSampling}/></>;
     case'sampling':return <SamplingWorkspace onChanged={dataChanged} refreshKey={dataVersion} initialProjectId={samplingProjectId}/>;
