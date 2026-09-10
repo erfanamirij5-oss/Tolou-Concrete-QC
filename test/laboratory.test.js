@@ -1,0 +1,74 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {migrate} from '../src/infrastructure/sqlite/migrate.js';
+import {createLaboratoryService,utcTimestamp} from '../src/application/laboratory.js';
+
+function fixture(t) {
+  const db=new DatabaseSync(':memory:');t.after(()=>db.close());migrate(db);
+  db.exec(`INSERT INTO companies VALUES('c1','شرکت آزمایشی'),('c2','شرکت دوم');
+    INSERT INTO projects(id,company_id,name,customer_name) VALUES('p1','c1','پروژه','مشتری');
+    INSERT INTO pours VALUES('pour1','c1','p1','2026-09-01T08:00:00.000Z');`);
+  const service=createLaboratoryService(db,{companyId:'c1',actor:'کاربر نشست',clock:()=> '2026-09-10T12:00:00.000Z'});
+  return {db,service};
+}
+const internal={id:'s1',kind:'internal',title:'آزمایش',purpose:'بررسی',samplerName:'نمونه‌بردار',sampledAt:'2026-09-01T08:00:00.000Z'};
+const draft={sampleId:'s1-1',expectedRevision:0,strengthMpa:18,testedAt:'2026-09-08T08:00:00.000Z',testedBy:'آزمایشگر'};
+
+test('service persists internal series and six samples with trusted actor',t=>{
+  const {db,service}=fixture(t); service.createSeries({...internal,enteredBy:'نام جعلی ورودی'});
+  assert.equal(db.prepare('SELECT count(*) n FROM samples').get().n,6); assert.equal(service.listSeries({kind:'internal'})[0].entered_by,'کاربر نشست');
+  assert.equal(service.listSeries({kind:'customer'}).length,0); assert.throws(()=>service.createSeries(internal));
+});
+test('customer series require valid company-owned pour and retain repeat pours in one project',t=>{
+  const {db,service}=fixture(t); const input={id:'a',kind:'customer',projectId:'p1',pourId:'pour1',samplerName:'الف',sampledAt:internal.sampledAt};
+  service.createSeries(input); db.exec("INSERT INTO pours VALUES('pour2','c1','p1','2026-09-02T08:00:00.000Z')"); service.createSeries({...input,id:'b',pourId:'pour2'});
+  assert.equal(service.listSeries({kind:'customer',projectId:'p1'}).length,2); const foreign=createLaboratoryService(db,{companyId:'c2',actor:'کاربر دوم'}); assert.throws(()=>foreign.createSeries({...input,id:'bad'}));
+});
+test('partial specimen failure rolls back the whole series',t=>{
+  const {db,service}=fixture(t); db.exec("CREATE TRIGGER fail_sample BEFORE INSERT ON samples WHEN NEW.id='s1-3' BEGIN SELECT RAISE(ABORT,'simulated failure'); END");
+  assert.throws(()=>service.createSeries(internal)); assert.equal(db.prepare('SELECT count(*) n FROM sampling_series').get().n,0); assert.equal(db.prepare('SELECT count(*) n FROM samples').get().n,0);
+});
+test('draft corrections preserve history and stale edits are refused',t=>{
+  const {db,service}=fixture(t);service.createSeries(internal);service.saveDraft(draft); assert.throws(()=>service.saveDraft({...draft,strengthMpa:19})); assert.throws(()=>service.saveDraft({...draft,expectedRevision:1,strengthMpa:19}));
+  service.saveDraft({...draft,expectedRevision:1,strengthMpa:19,reason:'اصلاح ورود'}); assert.equal(db.prepare('SELECT count(*) n FROM result_revisions').get().n,2); assert.equal(db.prepare('SELECT strength_mpa FROM current_results').get().strength_mpa,19);
+});
+test('invalid dates and impossible test ordering never persist',t=>{
+  const {db,service}=fixture(t); assert.throws(()=>utcTimestamp('2026-02-30T00:00:00.000Z')); assert.throws(()=>utcTimestamp('2026-09-01T08:00:00')); service.createSeries(internal);
+  assert.throws(()=>service.saveDraft({...draft,testedAt:'2026-08-30T08:00:00.000Z'})); assert.throws(()=>service.saveDraft({...draft,testedAt:'2026-09-11T08:00:00.000Z'})); assert.throws(()=>service.saveDraft({...draft,strengthMpa:null})); assert.throws(()=>service.saveDraft({...draft,sampleId:'s1-6'}));
+});
+test('company isolation and approved result gate prevent unauthorized draft replacement',t=>{
+  const {db,service}=fixture(t);service.createSeries(internal); const foreign=createLaboratoryService(db,{companyId:'c2',actor:'دوم',clock:()=> '2026-09-10T12:00:00.000Z'}); assert.throws(()=>foreign.saveDraft(draft));
+  db.prepare('INSERT INTO result_revisions VALUES(?,?,?,?,?,?,?,?,?,?)').run('s1-1',1,18,'approved',draft.testedAt,'الف','ب','2026-09-08T09:00:00.000Z','ج',null); assert.throws(()=>service.saveDraft({...draft,expectedRevision:1,reason:'تغییر'}));
+});
+test('approval appends immutable approved revision and live list reflects it',t=>{
+  const {db,service}=fixture(t); service.createSeries(internal); service.saveDraft(draft); const approval=service.approveDraft({sampleId:'s1-1',expectedRevision:1});
+  assert.deepEqual(approval,{sampleId:'s1-1',revision:2,state:'approved'}); const approved=service.listSamples().find((sample)=>sample.id==='s1-1'); assert.equal(approved?.state,'approved'); assert.equal(service.listResultHistory('s1-1').length,2);
+  assert.equal(db.prepare('SELECT approved_by FROM current_results WHERE sample_id=?').get('s1-1').approved_by,'کاربر نشست'); assert.throws(()=>service.approveDraft({sampleId:'s1-1',expectedRevision:1}));
+});
+test('approved correction reopens as draft and review queue exposes only pending review',t=>{
+  const {service}=fixture(t);service.createSeries(internal);service.saveDraft(draft);service.approveDraft({sampleId:'s1-1',expectedRevision:1});
+  const correction=service.requestCorrection({sampleId:'s1-1',expectedRevision:2,strengthMpa:19.5,testedAt:draft.testedAt,testedBy:'آزمایشگر دوم',reason:'اصلاح قرائت دستگاه'});
+  assert.deepEqual(correction,{sampleId:'s1-1',revision:3,state:'draft'}); const queue=service.listReviewQueue(); assert.equal(queue.length,1); assert.equal(queue[0].id,'s1-1'); assert.equal(queue[0].reason,'اصلاح قرائت دستگاه');
+  const approval=service.approveDraft({sampleId:'s1-1',expectedRevision:3}); assert.equal(approval.revision,4); assert.equal(service.listReviewQueue().length,0);
+});
+test('void appends terminal audit revision and rejects stale or repeated void',t=>{
+  const {service}=fixture(t);service.createSeries(internal);service.saveDraft(draft);service.approveDraft({sampleId:'s1-1',expectedRevision:1});
+  assert.throws(()=>service.voidResult({sampleId:'s1-1',expectedRevision:1,reason:'قدیمی'}),/تغییر کرده/);
+  const voided=service.voidResult({sampleId:'s1-1',expectedRevision:2,reason:'نمونه آسیب‌دیده'}); assert.deepEqual(voided,{sampleId:'s1-1',revision:3,state:'void'});
+  const history=service.listResultHistory('s1-1'); assert.equal(history[0].state,'void'); assert.equal(history[0].strength_mpa,null); assert.equal(history[0].reason,'نمونه آسیب‌دیده'); assert.throws(()=>service.voidResult({sampleId:'s1-1',expectedRevision:3,reason:'دوباره'}),/قبلاً باطل/);
+});
+test('witness schedule revisions are immutable, ordered, and required before testing',t=>{
+  const {db,service}=fixture(t); service.createSeries(internal);
+  const first=service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-09-15T08:00:00.000Z',reason:'برنامه آزمون شاهد'});
+  assert.equal(first.revision,1); assert.throws(()=>service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-09-16T08:00:00.000Z',reason:'قدیمی'}),/تغییر کرده/);
+  const second=service.scheduleWitness({sampleId:'s1-6',expectedRevision:1,dueAt:'2026-09-16T08:00:00.000Z',reason:'هماهنگی آزمایشگاه'}); assert.equal(second.revision,2);
+  const row=service.listSamples().find((sample)=>sample.id==='s1-6'); assert.equal(row?.witness_schedule_revision,2); assert.equal(row?.due_at,'2026-09-16T08:00:00.000Z');
+  const history=service.listWitnessScheduleHistory('s1-6'); assert.equal(history.length,2); assert.equal(history[0].reason,'هماهنگی آزمایشگاه');
+  assert.throws(()=>db.exec("UPDATE witness_schedule_revisions SET reason='x'"));
+});
+test('witness schedule rejects non-witness samples and dates before sampling',t=>{
+  const {service}=fixture(t); service.createSeries(internal);
+  assert.throws(()=>service.scheduleWitness({sampleId:'s1-1',expectedRevision:0,dueAt:'2026-09-15T08:00:00.000Z',reason:'نامعتبر'}),/فقط نمونه شاهد/);
+  assert.throws(()=>service.scheduleWitness({sampleId:'s1-6',expectedRevision:0,dueAt:'2026-08-31T08:00:00.000Z',reason:'نامعتبر'}),/پیش از نمونه‌برداری/);
+});
