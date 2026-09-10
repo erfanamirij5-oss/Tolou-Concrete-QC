@@ -46,6 +46,20 @@ CREATE TABLE external_result_events (
   UNIQUE(id,company_id)
 ) STRICT;
 
+CREATE TRIGGER external_result_sample_company_insert BEFORE INSERT ON external_result_events
+WHEN NOT EXISTS(
+  SELECT 1 FROM samples s JOIN sampling_series ss ON ss.id=s.series_id
+  WHERE s.id=NEW.sample_id AND ss.company_id=NEW.company_id
+)
+BEGIN SELECT RAISE(ABORT,'external result sample company mismatch'); END;
+
+CREATE TRIGGER external_result_sample_company_update BEFORE UPDATE OF sample_id,company_id ON external_result_events
+WHEN NOT EXISTS(
+  SELECT 1 FROM samples s JOIN sampling_series ss ON ss.id=s.series_id
+  WHERE s.id=NEW.sample_id AND ss.company_id=NEW.company_id
+)
+BEGIN SELECT RAISE(ABORT,'external result sample company mismatch'); END;
+
 CREATE TABLE external_result_attachments (
   id TEXT PRIMARY KEY NOT NULL,
   external_result_event_id TEXT NOT NULL,
