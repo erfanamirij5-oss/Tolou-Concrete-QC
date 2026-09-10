@@ -29,7 +29,7 @@ function createMainWindow(): BrowserWindow {
     title: 'طلوع | کنترل کیفیت بتن',
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/preload.js'),
+      preload: join(__dirname, '../preload/preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
