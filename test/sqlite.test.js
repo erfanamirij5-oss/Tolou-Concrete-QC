@@ -66,8 +66,9 @@ test('reopening a real database retains records and repeated migration is harmle
     db.prepare('INSERT INTO companies VALUES(?,?)').run('c1','شرکت آزمایشی');db.close();db=null;
     db=new DatabaseSync(file);migrate(db);migrate(db);
     assert.equal(db.prepare('SELECT name FROM companies').get().name,'شرکت آزمایشی');
-    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,2);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,3);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='mix_design_versions'").get().n,1);
+    assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='witness_schedule_revisions'").get().n,1);
   } finally {db?.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('failed migration rolls back tables and migration registration',t=>{
@@ -79,9 +80,9 @@ test('failed migration rolls back tables and migration registration',t=>{
 test('database newer than application is refused without mutation',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   migrate(db);
-  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(3,'future');
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(4,'future');
   assert.throws(()=>migrate(db),/جدیدتر/);
-  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,3);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,4);
 });
 test('migration checksum tampering is detected',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
