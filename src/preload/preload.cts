@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('tolouSystem',Object.freeze({
 }));
 contextBridge.exposeInMainWorld('tolouTraceability',Object.freeze({
   addComparisonParty:(input:{id:string;seriesId:string;partyType:'laboratory'|'person'|'consultant'|'client'|'supervisor'|'other';partyName:string;laboratoryName?:string;samplerName?:string;externalReference?:string;notes?:string})=>ipcRenderer.invoke('sampling-traceability:add-comparison-party',input),
-  listComparisonParties:(seriesId:string)=>ipcRenderer.invoke('sampling-traceability:list-comparison-parties',seriesId)
+  listComparisonParties:(seriesId:string)=>ipcRenderer.invoke('sampling-traceability:list-comparison-parties',seriesId),
+  saveMixSnapshot:(input:unknown)=>ipcRenderer.invoke('sampling-traceability:save-mix-snapshot',input),
+  getMixSnapshot:(seriesId:string)=>ipcRenderer.invoke('sampling-traceability:get-mix-snapshot',seriesId)
 }));
