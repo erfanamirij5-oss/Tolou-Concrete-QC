@@ -24,14 +24,20 @@ test('mix design versions are sequential and company scoped',t=>{
   assert.throws(()=>service.createMixVersion({id:'bad',mixDesignId:'foreign'}),/متعلق به این شرکت/);
 });
 
-test('pour QC specification validates project ownership and mix version ownership',t=>{
+test('pour QC specification validates ownership and locks its referenced mix version',t=>{
   const {db,service}=fixture(t);
   service.createMixDesign({id:'m1',code:'C30','title':'طرح C30'});
   service.createMixVersion({id:'mv1',mixDesignId:'m1',revision:1,targetSlumpMm:100});
+  service.createMixVersion({id:'mv2',mixDesignId:'m1',revision:2,targetSlumpMm:120});
   const saved=service.savePourSpecification({pourId:'pour1',projectId:'p1',mixDesignVersionId:'mv1',elementName:'فونداسیون',concreteClass:'C30',specifiedStrengthMpa:30,targetSlumpMm:110,plannedVolumeM3:75});
   assert.equal(saved.mixDesignVersionId,'mv1');
-  const row=service.getPourSpecification('pour1');
+  let row=service.getPourSpecification('pour1');
   assert.equal(row.mix_code,'C30'); assert.equal(row.element_name,'فونداسیون');
+  service.savePourSpecification({pourId:'pour1',projectId:'p1',mixDesignVersionId:'mv1',elementName:'ستون',concreteClass:'C30',specifiedStrengthMpa:30,targetSlumpMm:115,plannedVolumeM3:80});
+  row=service.getPourSpecification('pour1');
+  assert.equal(row.element_name,'ستون'); assert.equal(row.target_slump_mm,115); assert.equal(row.mix_design_version_id,'mv1');
+  assert.throws(()=>service.savePourSpecification({pourId:'pour1',projectId:'p1',mixDesignVersionId:'mv2'}),/تثبیت شده/);
+  assert.throws(()=>service.savePourSpecification({pourId:'pour1',projectId:'p1',mixDesignVersionId:null}),/تثبیت شده/);
   assert.throws(()=>service.savePourSpecification({pourId:'pour1',projectId:'p2'}),/پروژه فعال/);
   assert.throws(()=>service.getPourSpecification('pour2'),/متعلق به این شرکت/);
   assert.throws(()=>db.prepare("UPDATE mix_design_versions SET notes='x' WHERE id='mv1'").run());
