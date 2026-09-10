@@ -80,6 +80,16 @@ test('QC parties and external result events remain company scoped with attachmen
   assert.throws(()=>db.prepare(`INSERT INTO external_result_attachments(id,external_result_event_id,company_id,file_name,media_type,relative_path,sha256,size_bytes,added_at,added_by)
     VALUES(?,?,?,?,?,?,?,?,?,?)`).run('badatt','ext1','c1','x.pdf','application/pdf','x.pdf','short',1,'2026-09-17T10:05:00.000Z','کاربر'));
 });
+test('specimen physical measurement ledger is immutable and sequential',t=>{
+  const db=fixture(t);addInternal(db);
+  db.prepare(`INSERT INTO specimen_physical_measurement_revisions(sample_id,revision,shape,length_mm,width_mm,height_mm,diameter_mm,mass_kg,volume_m3,density_kg_m3,reason,entered_by,entered_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run('sample1',1,'cube',150,150,150,null,8.1,0.003375,2400,null,'کاربر','2026-09-17T08:00:00.000Z');
+  assert.equal(db.prepare("SELECT density_kg_m3 FROM current_specimen_physical_measurements WHERE sample_id='sample1'").get().density_kg_m3,2400);
+  assert.throws(()=>db.prepare(`INSERT INTO specimen_physical_measurement_revisions(sample_id,revision,shape,length_mm,width_mm,height_mm,diameter_mm,mass_kg,volume_m3,density_kg_m3,reason,entered_by,entered_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`).run('sample1',3,'cube',150,150,150,null,8.2,0.003375,2429.63,'پرش نسخه','کاربر','2026-09-17T09:00:00.000Z'));
+  assert.throws(()=>db.exec('UPDATE specimen_physical_measurement_revisions SET mass_kg=9'));
+  assert.throws(()=>db.exec('DELETE FROM specimen_physical_measurement_revisions'));
+});
 test('reopening a real database retains records and repeated migration is harmless',()=>{
   const dir=mkdtempSync(join(tmpdir(),'tolou-sqlite-'));let db;
   try {
@@ -87,10 +97,11 @@ test('reopening a real database retains records and repeated migration is harmle
     db.prepare('INSERT INTO companies VALUES(?,?)').run('c1','شرکت آزمایشی');db.close();db=null;
     db=new DatabaseSync(file);migrate(db);migrate(db);
     assert.equal(db.prepare('SELECT name FROM companies').get().name,'شرکت آزمایشی');
-    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,4);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,5);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='mix_design_versions'").get().n,1);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='witness_schedule_revisions'").get().n,1);
     assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='external_result_events'").get().n,1);
+    assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name='specimen_physical_measurement_revisions'").get().n,1);
   } finally {db?.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('failed migration rolls back tables and migration registration',t=>{
@@ -102,9 +113,9 @@ test('failed migration rolls back tables and migration registration',t=>{
 test('database newer than application is refused without mutation',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
   migrate(db);
-  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(5,'future');
+  db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)').run(6,'future');
   assert.throws(()=>migrate(db),/جدیدتر/);
-  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,5);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM schema_migrations').get().n,6);
 });
 test('migration checksum tampering is detected',t=>{
   const db=new DatabaseSync(':memory:');t.after(()=>db.close());
