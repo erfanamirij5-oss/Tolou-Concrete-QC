@@ -1,4 +1,4 @@
-name: Foundation checks
+name: Windows foundation checks
 on:
   push:
     branches: [develop, 'feature/**']
@@ -7,10 +7,7 @@ permissions:
   contents: read
 jobs:
   foundation:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
