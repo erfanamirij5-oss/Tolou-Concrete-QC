@@ -5,7 +5,15 @@ import { createDatabaseRuntime, type DatabaseRuntime } from './database.js';
 import { IPC_CHANNELS, type AppInfo, type ApproveDraftInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type SaveDraftInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision } from '../shared/ipc.js';
 const __dirname=dirname(fileURLToPath(import.meta.url)); let runtime:DatabaseRuntime|undefined;
 function createMainWindow():BrowserWindow{const window=new BrowserWindow({width:1440,height:900,minWidth:1180,minHeight:720,show:false,backgroundColor:'#F5F6F8',title:'طلوع | کنترل کیفیت بتن',autoHideMenuBar:true,webPreferences:{preload:join(__dirname,'../preload/preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});window.once('ready-to-show',()=>window.show());const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)void window.loadURL(devServer);else void window.loadFile(join(__dirname,'../../dist-renderer/index.html'));window.webContents.setWindowOpenHandler(()=>({action:'deny'}));window.webContents.on('will-navigate',(event,url)=>{if(!devServer||!url.startsWith(devServer))event.preventDefault();});return window;}
-function safe<T>(operation:()=>T):IpcResult<T>{try{return{ok:true,data:operation()};}catch(error){return{ok:false,message:error instanceof Error?error.message:'عملیات انجام نشد'};}}
+function safeMessage(error:unknown):string{
+ if(error instanceof Error){
+  console.error('[Tolou IPC]',error);
+  const message=error.message.trim();
+  if(message.length<=180&&/[\u0600-\u06FF]/u.test(message)&&!/SQLITE|constraint|FOREIGN KEY|UNIQUE|CHECK|trigger|database|syntax|stack/i.test(message)) return message;
+ }
+ return 'عملیات انجام نشد. اطلاعات ورودی را بررسی کنید و دوباره تلاش کنید.';
+}
+function safe<T>(operation:()=>T):IpcResult<T>{try{return{ok:true,data:operation()};}catch(error){return{ok:false,message:safeMessage(error)};}}
 function registerIpc(database:DatabaseRuntime):void{
  ipcMain.handle(IPC_CHANNELS.appInfo,():AppInfo=>({name:app.getName(),version:app.getVersion(),platform:process.platform,locale:app.getLocale()}));
  ipcMain.handle(IPC_CHANNELS.health,():HealthStatus=>({ok:true,timestamp:new Date().toISOString(),database:'ready'}));
