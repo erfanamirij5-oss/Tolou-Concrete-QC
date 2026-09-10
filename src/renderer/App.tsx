@@ -10,12 +10,17 @@ export function App() {
   const [clock, setClock] = useState(new Date());
   const [health, setHealth] = useState<'checking' | 'ok' | 'error'>('checking');
   const [dashboard, setDashboard] = useState<DashboardSummary>({ activeProjects:0,totalSeries:0,pendingResults:0,draftResults:0 });
+  const [dataVersion,setDataVersion]=useState(0);
 
   const refreshDashboard = useCallback(async () => {
     const result = await window.tolou.dashboard();
     if (!result.ok) throw new Error(result.message);
     setDashboard(result.data);
   }, []);
+  const dataChanged=useCallback(()=>{
+    setDataVersion((value)=>value+1);
+    void refreshDashboard();
+  },[refreshDashboard]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock(new Date()), 60_000);
@@ -46,9 +51,9 @@ export function App() {
       <div className="content-grid">
         <section className="hero glass"><div><p className="eyebrow eyebrow--accent">مرکز عملیات امروز</p><h2>کنترل سریع، تصمیم مهندسی، سابقه قابل ردیابی.</h2><p>ثبت پروژه، بتن‌ریزی، سری نمونه، نتیجه و تأیید مهندسی روی پایگاه داده آفلاین و قابل ردیابی.</p></div><div className="hero-orbit" aria-hidden="true"><div /><div /><span>QC</span></div></section>
         <section className="metrics-grid" aria-label="شاخص‌های زنده">{metrics.map((metric)=><article className="metric-card glass" key={metric.label}><div className="metric-header"><span>{metric.label}</span><i className={`metric-light metric-light--${metric.tone ?? 'neutral'}`} /></div><strong>{metric.value}</strong><small>{metric.hint}</small></article>)}</section>
-        <ProjectWorkbench onChanged={()=>void refreshDashboard()} />
-        <LaboratoryWorkbench />
-        <SampleResultsPanel onChanged={()=>void refreshDashboard()} />
+        <ProjectWorkbench onChanged={dataChanged} refreshKey={dataVersion} />
+        <LaboratoryWorkbench onChanged={dataChanged} refreshKey={dataVersion} />
+        <SampleResultsPanel onChanged={dataChanged} refreshKey={dataVersion} />
       </div>
     </section>
   </main>;
