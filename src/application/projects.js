@@ -45,7 +45,8 @@ export function createProjectService(db, {companyId}) {
       const activeProjects = db.prepare('SELECT count(*) AS n FROM projects WHERE company_id=? AND archived=0').get(companyId).n;
       const totalSeries = db.prepare('SELECT count(*) AS n FROM sampling_series WHERE company_id=?').get(companyId).n;
       const pendingResults = db.prepare(`SELECT count(*) AS n FROM samples s JOIN sampling_series ss ON ss.id=s.series_id
-        LEFT JOIN current_results r ON r.sample_id=s.id WHERE ss.company_id=? AND s.due_at IS NOT NULL AND r.sample_id IS NULL`).get(companyId).n;
+        LEFT JOIN current_results r ON r.sample_id=s.id LEFT JOIN current_witness_schedules w ON w.sample_id=s.id
+        WHERE ss.company_id=? AND COALESCE(s.due_at,w.due_at) IS NOT NULL AND r.sample_id IS NULL`).get(companyId).n;
       const draftResults = db.prepare(`SELECT count(*) AS n FROM current_results r JOIN samples s ON s.id=r.sample_id
         JOIN sampling_series ss ON ss.id=s.series_id WHERE ss.company_id=? AND r.state='draft'`).get(companyId).n;
       return {activeProjects:Number(activeProjects),totalSeries:Number(totalSeries),pendingResults:Number(pendingResults),draftResults:Number(draftResults)};
