@@ -28,8 +28,9 @@ test('project assignment requires an active profile and evaluation preserves sou
  const db=setup(t);const profiles=createRuleProfileService(db,{companyId:'c1',actor:'مهندس'});profiles.createProfile({id:'draft',code:'DRAFT',title:'Draft',authority:'مرجع',documentCode:'D',documentVersion:'1'});
  const engine=createRuleEvaluationService(db,{companyId:'c1',actor:'QC'});assert.throws(()=>engine.assignProfile({projectId:'p1',profileId:'draft'}),/فعال/);
  activeProfile(db);engine.assignProfile({projectId:'p1',profileId:'rp1'});const evaluation=engine.evaluateResult({sampleId:'sample1',resultRevision:1});
- assert.equal(evaluation.evaluated,true);assert.equal(evaluation.overallStatus,'pass');assert.equal(evaluation.items[0].referenceClause,'Clause A');assert.equal(evaluation.items[0].sourceTitle,'Document X');assert.equal(evaluation.items[0].sourceVersion,'1');assert.equal(evaluation.items[0].calculation.requiredMpa,27);
+ assert.equal(evaluation.evaluated,true);assert.equal(evaluation.reused,false);assert.equal(evaluation.overallStatus,'pass');assert.equal(evaluation.items[0].referenceClause,'Clause A');assert.equal(evaluation.items[0].sourceTitle,'Document X');assert.equal(evaluation.items[0].sourceVersion,'1');assert.equal(evaluation.items[0].calculation.requiredMpa,27);
  const stored=engine.getEvaluation(evaluation.evaluationId);assert.equal(stored.profile_code,'CUSTOM');assert.equal(stored.items[0].status,'pass');assert.equal(stored.input.strengthMpa,27);
+ const repeated=engine.evaluateResult({sampleId:'sample1',resultRevision:1});assert.equal(repeated.reused,true);assert.equal(repeated.id,evaluation.evaluationId);assert.equal(db.prepare('SELECT COUNT(*) AS n FROM result_rule_evaluations').get().n,1);
  assert.throws(()=>db.prepare('UPDATE result_rule_evaluations SET overall_status=? WHERE id=?').run('fail',evaluation.evaluationId),/immutable/);
 });
 
