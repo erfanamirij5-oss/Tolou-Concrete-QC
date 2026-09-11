@@ -4,8 +4,7 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const stageDir = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(stageDir, '..');
-const windowsIcon = path.resolve(root, 'assets', 'icons', 'Tolou-Concrete-QC.ico');
+const windowsIcon = path.resolve(stageDir, 'Tolou-License-Manager.ico');
 
 export default {
   packagerConfig: {
