@@ -1,8 +1,10 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
-const root = path.resolve(process.cwd(), '..');
+const stageDir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(stageDir, '..');
 const windowsIcon = path.resolve(root, 'assets', 'icons', 'Tolou-Concrete-QC.ico');
 
 export default {
