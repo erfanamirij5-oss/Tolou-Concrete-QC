@@ -19,6 +19,7 @@ app.whenReady().then(()=>{
   gameWindow=new BrowserWindow({show:false,fullscreen:true,autoHideMenuBar:true,backgroundColor:'#101e2d',title:'طلوع - مسئول بچینگ',webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,devTools:!app.isPackaged}});
   gameWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   gameWindow.webContents.on('will-navigate',(navEvent,url)=>{try{if(new URL(url).protocol!=='file:')navEvent.preventDefault();}catch{navEvent.preventDefault();}});
+  gameWindow.webContents.on('before-input-event',(inputEvent,input)=>{if(input.key==='Escape'&&input.type==='keyDown'){inputEvent.preventDefault();gameWindow?.close();}});
   gameWindow.on('closed',()=>{gameWindow=null;});
   await gameWindow.loadFile(source);gameWindow.show();gameWindow.setFullScreen(true);gameWindow.focus();return{ok:true};
  });
