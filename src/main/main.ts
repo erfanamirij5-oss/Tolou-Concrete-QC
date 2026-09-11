@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import { projectReportWorkbook } from './project-report-workbook.js';
 import { createDatabaseRuntime, type DatabaseRuntime } from './database.js';
 import { applyPendingRestore } from './system-operations.js';
+import './entertainment-operations.js';
 import { IPC_CHANNELS, type AddAttachmentResult, type AnalyticsFilter, type AnalyticsSummary, type AppInfo, type ApproveDraftInput, type AttachmentSummary, type CreateConcreteSourceInput, type CreateCustomerInput, type CreateMixDesignInput, type CreateMixVersionInput, type CreatePourInput, type CreateProjectInput, type CreateSeriesInput, type CreateTestingLaboratoryInput, type DraftResult, type HealthStatus, type IpcResult, type LaboratoryKind, type ProjectQcReport, type ProjectQcReportInput, type RegisterExternalResultInput, type ReportExportResult, type RequestCorrectionInput, type SaveDraftInput, type SaveFreshConcreteInput, type SavePourContextInput, type SavePourSpecificationInput, type SaveSpecimenPhysicsInput, type ScheduleWitnessInput, type SeriesSummary, type CreateSeriesResult, type SampleSummary, type ApprovalResult, type ResultRevision, type VoidResultInput, type VoidResult, type WitnessScheduleResult, type WitnessScheduleRevision } from '../shared/ipc.js';
 const require=createRequire(import.meta.url);
 const handledSquirrelEvent=process.platform==='win32'&&Boolean(require('electron-squirrel-startup'));
