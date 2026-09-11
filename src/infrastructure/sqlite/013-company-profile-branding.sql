@@ -1,0 +1,15 @@
+ALTER TABLE company_profiles ADD COLUMN company_name_en TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN registration_no TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN national_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN phone TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN email TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN website TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN address TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN laboratory_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN laboratory_code TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN report_footer TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN logo_relative_path TEXT NOT NULL DEFAULT '';
+ALTER TABLE company_profiles ADD COLUMN report_show_logo INTEGER NOT NULL DEFAULT 1 CHECK(report_show_logo IN (0,1));
+ALTER TABLE company_profiles ADD COLUMN report_show_company_name INTEGER NOT NULL DEFAULT 1 CHECK(report_show_company_name IN (0,1));
+ALTER TABLE company_profiles ADD COLUMN report_show_qc_manager INTEGER NOT NULL DEFAULT 1 CHECK(report_show_qc_manager IN (0,1));
+ALTER TABLE company_profiles ADD COLUMN report_show_contact INTEGER NOT NULL DEFAULT 1 CHECK(report_show_contact IN (0,1));
