@@ -1,0 +1,13 @@
+/* TOLOU Precision UI — global workspace scale normalization.
+   Keep every page header and its primary content on one visual rail. */
+:root{--workspace-content-max:1120px}
+.workspace>.topbar{width:100%;max-width:var(--workspace-content-max);margin-inline:auto;box-sizing:border-box}
+.content-grid{grid-template-columns:minmax(0,1fr);width:100%;min-width:0}
+.content-grid>*{min-width:0;box-sizing:border-box}
+.content-grid>*,.report-center-shell,.management-workspace,.analytics-workbench,.project-workbench,.specimen-list,.master-data-shell{width:100%;max-width:var(--workspace-content-max);margin-inline:auto;box-sizing:border-box}
+.content-grid>.workspace-intro,.content-grid>.metrics-grid,.content-grid>.quick-actions,.content-grid>.due-panel,.content-grid>.workbench,.content-grid>.review-layout,.content-grid>.system-card,.content-grid>.report-center-shell,.content-grid>.management-workspace,.content-grid>.analytics-workbench,.content-grid>.project-workbench,.content-grid>.specimen-list,.content-grid>.master-data-shell{grid-column:1/-1;width:100%;max-width:var(--workspace-content-max);margin-inline:auto}
+.report-center-shell{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.report-center-shell>*{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.master-data-shell>*{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.project-workbench,.analytics-workbench,.workbench,.system-card{min-width:0}
+@media(max-width:1180px){:root{--workspace-content-max:100%}.workspace>.topbar,.content-grid>*{max-width:100%}}
