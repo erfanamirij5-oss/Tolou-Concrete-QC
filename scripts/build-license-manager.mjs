@@ -33,9 +33,9 @@ const forge=process.platform==='win32'
   ? path.join(root,'node_modules','.bin','electron-forge.cmd')
   : path.join(root,'node_modules','.bin','electron-forge');
 
-const args=['make','--platform=win32','--arch=x64','--out-dir',out];
-const child=spawn(forge,args,{cwd:stage,stdio:'inherit',shell:false,env:process.env});
+const child=spawn(forge,['make','--platform=win32','--arch=x64'],{cwd:stage,stdio:'inherit',shell:false,env:process.env});
 const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('exit',resolve);});
 if(code!==0)process.exit(typeof code==='number'?code:1);
 
+await cp(path.join(stage,'out'),out,{recursive:true});
 console.log(`Tolou License Manager build completed: ${out}`);
