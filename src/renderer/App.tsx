@@ -14,6 +14,7 @@ import { isoToPersianLocal } from './jalali';
 import type { DashboardSummary, PourContextSummary, PourSpecification, ProjectSummary, SampleSummary } from '../shared/ipc';
 import { AnalyticsIcon, DashboardIcon, FreshIcon, MixIcon, ProjectsIcon, ReportsIcon, ResultIcon, ReviewIcon, SamplingIcon, SettingsIcon, SpecimenIcon } from './RecoveryIcons';
 import './ui-recovery.css';
+import './dashboard-precision.css';
 
 type Metric={label:string;value:string;hint:string;tone?:'ok'|'warn'|'danger'};
 type WorkspaceView='dashboard'|'projects'|'sampling'|'fresh'|'specimens'|'results'|'review'|'analytics'|'reports'|'mixes'|'settings';
