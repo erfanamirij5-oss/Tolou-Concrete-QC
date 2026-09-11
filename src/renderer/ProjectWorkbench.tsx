@@ -33,7 +33,7 @@ export function ProjectWorkbench({onChanged,refreshKey=0}:{onChanged?:()=>void;r
   const name=rawName.trim();if(!name)return null;
   const existing=sources.find(item=>normalizeSearch(item.name)===normalizeSearch(name));if(existing)return existing.id;
   const id=nextId('SRC'),code=nextId('AUTO-SRC');
-  const created=await window.tolou.createConcreteSource({id,code,name,sourceType:'unspecified'} as Parameters<typeof window.tolou.createConcreteSource>[0]);if(!created.ok)throw new Error(created.message);
+  const created=await window.tolou.createConcreteSource({id,code,name,sourceType:'unspecified'} as unknown as Parameters<typeof window.tolou.createConcreteSource>[0]);if(!created.ok)throw new Error(created.message);
   await reloadParties();return created.data.id;
  }
 
