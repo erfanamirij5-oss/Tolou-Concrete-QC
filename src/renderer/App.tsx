@@ -17,6 +17,7 @@ import { AnalyticsIcon, DashboardIcon, FreshIcon, MixIcon, ProjectsIcon, Reports
 import './ui-recovery.css';
 import './dashboard-precision.css';
 import './final-polish.css';
+import './liquid-background.css';
 
 type Metric={label:string;value:string;hint:string;tone?:'ok'|'warn'|'danger'};
 type WorkspaceView='dashboard'|'projects'|'sampling'|'fresh'|'specimens'|'results'|'review'|'analytics'|'reports'|'mixes'|'support'|'settings';
