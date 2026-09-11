@@ -20,6 +20,7 @@ const migrationFiles = [
   [16, './016-rule-profile-retirement.sql'],
   [17, './017-qc-exceptions.sql'],
   [18, './018-qc-exception-integrity.sql'],
+  [19, './019-qc-exception-current-view.sql'],
 ];
 
 function loadMigrations() {
@@ -42,7 +43,6 @@ export function migrate(db) {
   assertMigrationPlan(migrations);
   db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
   if (db.prepare('PRAGMA foreign_keys').get().foreign_keys !== 1) throw new Error('کنترل ارتباط داده‌ها فعال نشد');
-
   db.exec('BEGIN IMMEDIATE');
   try {
     db.exec('CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL) STRICT');
