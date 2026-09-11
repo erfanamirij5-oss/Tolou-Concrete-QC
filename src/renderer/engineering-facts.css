@@ -113,6 +113,142 @@
   background:#f1f4f6;
 }
 
+/* Management semantic fact layer — uses the existing KPI data only. */
+.management-workspace .management-kpi{
+  padding-inline-start:58px!important;
+}
+
+.management-workspace .management-kpi::before,
+.management-workspace .management-status-card::before,
+.management-workspace .management-qc-score::before,
+.management-workspace .management-policy::before{
+  content:"";
+  position:absolute;
+  display:block;
+  width:22px;
+  height:22px;
+  background:currentColor;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain;
+}
+
+.management-workspace .management-kpi::before{
+  inset-inline-start:15px;
+  top:16px;
+  width:30px;
+  height:30px;
+  padding:7px;
+  box-sizing:border-box;
+  border-radius:10px;
+  color:#36566e;
+  background-color:currentColor;
+}
+
+.management-workspace .management-kpi:nth-child(1)::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7 3h10v4h3v14H4V7h3V3Zm2 4h6V5H9v2Zm-3 2v10h12V9H6Zm2 2h3v3H8v-3Zm5 0h3v3h-3v-3Zm-5 5h3v2H8v-2Zm5 0h3v2h-3v-2Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M7 3h10v4h3v14H4V7h3V3Zm2 4h6V5H9v2Zm-3 2v10h12V9H6Zm2 2h3v3H8v-3Zm5 0h3v3h-3v-3Zm-5 5h3v2H8v-2Zm5 0h3v2h-3v-2Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-kpi:nth-child(2)::before{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M6 2h9l4 4v16H6V2Zm2 2v16h9V8h-4V4H8Zm6 1.5V7h1.5L14 5.5Zm-4 7.1 1.4 1.4 3-3 1.4 1.4-4.4 4.4-2.8-2.8 1.4-1.4Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M6 2h9l4 4v16H6V2Zm2 2v16h9V8h-4V4H8Zm6 1.5V7h1.5L14 5.5Zm-4 7.1 1.4 1.4 3-3 1.4 1.4-4.4 4.4-2.8-2.8 1.4-1.4Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-kpi:nth-child(3)::before{
+  color:#2d7a59;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm3.7 4.8 1.4 1.4-6 6-3.2-3.2 1.4-1.4 1.8 1.8 4.6-4.6Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm3.7 4.8 1.4 1.4-6 6-3.2-3.2 1.4-1.4 1.8 1.8 4.6-4.6Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-kpi:nth-child(4)::before{
+  color:#a6473e;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-3 5 3 3 3-3 1.4 1.4-3 3 3 3-1.4 1.4-3-3-3 3-1.4-1.4 3-3-3-3L9 9Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-3 5 3 3 3-3 1.4 1.4-3 3 3 3-1.4 1.4-3-3-3 3-1.4-1.4 3-3-3-3L9 9Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-kpi:nth-child(5)::before{
+  color:#b36d24;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 3h2v5.2l3.2 1.9-1 1.7-4.2-2.5V7Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 3h2v5.2l3.2 1.9-1 1.7-4.2-2.5V7Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-kpi:nth-child(6)::before{
+  color:#a6473e;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2 1.8 20h20.4L12 2Zm0 4 6.7 12H5.3L12 6Zm-1 3.5h2v4.8h-2V9.5Zm0 6.3h2v2h-2v-2Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2 1.8 20h20.4L12 2Zm0 4 6.7 12H5.3L12 6Zm-1 3.5h2v4.8h-2V9.5Zm0 6.3h2v2h-2v-2Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-status-card,
+.management-workspace .management-qc-score,
+.management-workspace .management-policy{
+  position:relative;
+}
+
+.management-workspace .management-status-card,
+.management-workspace .management-qc-score{
+  padding-inline-start:52px!important;
+}
+
+.management-workspace .management-status-card::before,
+.management-workspace .management-qc-score::before{
+  inset-inline-start:15px;
+  top:16px;
+  width:25px;
+  height:25px;
+}
+
+.management-workspace .management-status-card--accepted::before{
+  color:#2d7a59;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm3.8 6.8-5.2 5.2-2.4-2.4-1.4 1.4 3.8 3.8 6.6-6.6-1.4-1.4Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm3.8 6.8-5.2 5.2-2.4-2.4-1.4 1.4 3.8 3.8 6.6-6.6-1.4-1.4Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-status-card--rejected::before{
+  color:#a6473e;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm-3 7 3 3 3-3 1.4 1.4-3 3 3 3-1.4 1.4-3-3-3 3-1.4-1.4 3-3-3-3L9 9Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm-3 7 3 3 3-3 1.4 1.4-3 3 3 3-1.4 1.4-3-3-3 3-1.4-1.4 3-3-3-3L9 9Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-qc-score::before{
+  color:#315f79;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 3h2v5h4v2h-6V7Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm-1 3h2v5h4v2h-6V7Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-policy{
+  padding-inline-start:46px!important;
+}
+
+.management-workspace .management-policy::before{
+  inset-inline-start:14px;
+  top:13px;
+  width:22px;
+  height:22px;
+  color:#b8642d;
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2 5 5v6c0 4.5 2.8 8.6 7 11 4.2-2.4 7-6.5 7-11V5l-7-3Zm0 2.2L17 6v5c0 3.5-1.9 6.8-5 8.9-3.1-2.1-5-5.4-5-8.9V6l5-1.8Zm-1 3.3h2v5h-2v-5Zm0 6.5h2v2h-2v-2Z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2 5 5v6c0 4.5 2.8 8.6 7 11 4.2-2.4 7-6.5 7-11V5l-7-3Zm0 2.2L17 6v5c0 3.5-1.9 6.8-5 8.9-3.1-2.1-5-5.4-5-8.9V6l5-1.8Zm-1 3.3h2v5h-2v-5Zm0 6.5h2v2h-2v-2Z'/%3E%3C/svg%3E");
+}
+
+.management-workspace .management-card-head .eyebrow{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.management-workspace .management-card-head .eyebrow::before{
+  content:"";
+  width:6px;
+  height:6px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#cf7b3c;
+  box-shadow:0 0 0 4px rgba(207,123,60,.08);
+}
+
 [data-theme='dark'] .engineering-fact-strip{
   border-color:rgba(174,190,203,.13);
   background:linear-gradient(145deg,rgba(25,34,43,.98),rgba(18,26,34,.97));
@@ -156,6 +292,13 @@
   border-color:rgba(64,139,105,.18);
 }
 
+[data-theme='dark'] .management-workspace .management-kpi::before,
+[data-theme='dark'] .management-workspace .management-status-card::before,
+[data-theme='dark'] .management-workspace .management-qc-score::before,
+[data-theme='dark'] .management-workspace .management-policy::before{
+  filter:brightness(1.25);
+}
+
 @media(max-width:900px){
   .engineering-fact-strip{grid-template-columns:1fr;align-items:stretch}
   .engineering-fact-strip__lead{border-inline-end:0;border-bottom:1px solid rgba(34,55,74,.10);padding:0 0 10px}
@@ -164,4 +307,5 @@
 
 @media(max-width:560px){
   .engineering-fact-strip__facts{grid-template-columns:1fr}
+  .management-workspace .management-kpi{padding-inline-start:52px!important}
 }
