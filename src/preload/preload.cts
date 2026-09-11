@@ -26,3 +26,11 @@ contextBridge.exposeInMainWorld('tolouManagement',Object.freeze({
   getSummary:(input:{projectId?:string|null;startAt?:string|null;endAt?:string|null}={})=>ipcRenderer.invoke('management:summary',input),
   getDataset:(input:{projectId?:string|null;startAt?:string|null;endAt?:string|null}={})=>ipcRenderer.invoke('management:dataset',input)
 }));
+contextBridge.exposeInMainWorld('tolouRules',Object.freeze({
+  listProfiles:()=>ipcRenderer.invoke('rules:profiles:list'),
+  getProfile:(profileId:string)=>ipcRenderer.invoke('rules:profiles:get',profileId),
+  getProjectAssignment:(projectId:string)=>ipcRenderer.invoke('rules:project-assignment:get',projectId),
+  assignProjectProfile:(input:{projectId:string;profileId:string})=>ipcRenderer.invoke('rules:project-assignment:set',input),
+  evaluateResult:(input:{sampleId:string;resultRevision:number})=>ipcRenderer.invoke('rules:evaluate-result',input),
+  getEvaluation:(evaluationId:string)=>ipcRenderer.invoke('rules:evaluation:get',evaluationId)
+}));
