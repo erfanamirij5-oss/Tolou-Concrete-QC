@@ -15,6 +15,7 @@ const assets = [
   ['src/infrastructure/sqlite/011-comparison-result-revisions.sql', 'dist-electron/infrastructure/sqlite/011-comparison-result-revisions.sql'],
   ['src/infrastructure/sqlite/012-project-strength-requirements.sql', 'dist-electron/infrastructure/sqlite/012-project-strength-requirements.sql'],
   ['src/infrastructure/sqlite/013-company-profile-branding.sql', 'dist-electron/infrastructure/sqlite/013-company-profile-branding.sql'],
+  ['src/infrastructure/sqlite/014-rule-profiles.sql', 'dist-electron/infrastructure/sqlite/014-rule-profiles.sql'],
   ['assets/icons/Tolou-Concrete-QC.ico', 'dist-electron/assets/icons/Tolou-Concrete-QC.ico'],
 ];
 
