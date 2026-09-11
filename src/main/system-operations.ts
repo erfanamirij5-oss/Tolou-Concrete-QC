@@ -14,12 +14,74 @@ const BACKUP_VERSION=1;
 const PENDING_MARKER='pending-restore.json';
 const STAGED_DB='pending-restore.sqlite';
 const STAGED_ATTACHMENTS='pending-restore-attachments';
+const COMPANY_LOGO_RELATIVE='company-brand/company-logo.png';
+const MAX_LOGO_BYTES=2*1024*1024;
 
-export type CompanyProfile={companyName:string;qcManagerName:string;managingDirectorName:string;isConfigured:boolean};
+export type CompanyProfile={
+  companyName:string;
+  companyNameEn:string;
+  qcManagerName:string;
+  managingDirectorName:string;
+  registrationNo:string;
+  nationalId:string;
+  phone:string;
+  email:string;
+  website:string;
+  address:string;
+  laboratoryName:string;
+  laboratoryCode:string;
+  reportFooter:string;
+  logoRelativePath:string;
+  logoDataUrl:string|null;
+  reportShowLogo:boolean;
+  reportShowCompanyName:boolean;
+  reportShowQcManager:boolean;
+  reportShowContact:boolean;
+  isConfigured:boolean;
+};
+export type CompanyProfileInput={
+  companyName:string;
+  qcManagerName:string;
+  managingDirectorName:string;
+  companyNameEn?:string;
+  registrationNo?:string;
+  nationalId?:string;
+  phone?:string;
+  email?:string;
+  website?:string;
+  address?:string;
+  laboratoryName?:string;
+  laboratoryCode?:string;
+  reportFooter?:string;
+  reportShowLogo?:boolean;
+  reportShowCompanyName?:boolean;
+  reportShowQcManager?:boolean;
+  reportShowContact?:boolean;
+};
 export type SystemResult<T>={ok:true;data:T}|{ok:false;message:string};
 type BackupEntry={path:string;data:string};
 type BackupEnvelope={magic:string;version:number;createdAt:string;database:string;attachments:BackupEntry[]};
 type ActivationInput={companyName:string;qcManagerName:string;managingDirectorName:string;planMonths:SubscriptionMonths;productKey:string};
+
+type CompanyProfileRow={
+  qc_manager_name:string;
+  managing_director_name:string;
+  company_name_en:string;
+  registration_no:string;
+  national_id:string;
+  phone:string;
+  email:string;
+  website:string;
+  address:string;
+  laboratory_name:string;
+  laboratory_code:string;
+  report_footer:string;
+  logo_relative_path:string;
+  report_show_logo:number;
+  report_show_company_name:number;
+  report_show_qc_manager:number;
+  report_show_contact:number;
+};
 
 function trusted(event:IpcMainInvokeEvent){const frame=event.senderFrame;if(!frame||frame!==event.sender.mainFrame)return false;const window=BrowserWindow.fromWebContents(event.sender);if(!window)return false;const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)return frame.url.startsWith(devServer);try{return new URL(frame.url).protocol==='file:';}catch{return false;}}
 function safe<T>(operation:()=>T):SystemResult<T>{try{return{ok:true,data:operation()};}catch(error){console.error('[Tolou system]',error);return{ok:false,message:error instanceof Error&&/[\u0600-\u06FF]/u.test(error.message)?error.message:'عملیات سیستمی انجام نشد.'};}}
@@ -27,9 +89,96 @@ function dbPath(){return join(app.getPath('userData'),DB_NAME);}
 function sqlString(value:string){return `'${value.replace(/'/g,"''")}'`;}
 function openDb(){return new DatabaseSync(dbPath());}
 function normalizeName(value:unknown,label:string){if(typeof value!=='string'||!value.trim())throw new Error(`${label} الزامی است`);return value.trim();}
+function normalizeOptional(value:unknown){return typeof value==='string'?value.trim():'';}
+function logoAbsolutePath(relativePath:string){return relativePath?join(app.getPath('userData'),'attachments',...relativePath.split('/')):'';}
+function readLogoDataUrl(relativePath:string){if(!relativePath)return null;const absolute=logoAbsolutePath(relativePath);if(!absolute||!existsSync(absolute))return null;try{return `data:image/png;base64,${readFileSync(absolute).toString('base64')}`;}catch{return null;}}
 
-export function readCompanyProfile():CompanyProfile{const db=openDb();try{const company=db.prepare('SELECT name FROM companies WHERE id=?').get(COMPANY_ID) as {name:string}|undefined;const profile=db.prepare('SELECT qc_manager_name,managing_director_name FROM company_profiles WHERE company_id=?').get(COMPANY_ID) as {qc_manager_name:string;managing_director_name:string}|undefined;const companyName=company?.name?.trim()??'';const qcManagerName=profile?.qc_manager_name?.trim()??'';const managingDirectorName=profile?.managing_director_name?.trim()??'';return{companyName,qcManagerName,managingDirectorName,isConfigured:Boolean(companyName&&companyName!=='شرکت شما'&&qcManagerName&&managingDirectorName)};}finally{db.close();}}
-export function saveCompanyProfile(input:{companyName:string;qcManagerName:string;managingDirectorName:string}):CompanyProfile{const companyName=normalizeName(input?.companyName,'نام شرکت');const qcManagerName=normalizeName(input?.qcManagerName,'مسئول کنترل کیفیت');const managingDirectorName=normalizeName(input?.managingDirectorName,'مدیرعامل');const db=openDb();try{db.exec('BEGIN IMMEDIATE');db.prepare('UPDATE companies SET name=? WHERE id=?').run(companyName,COMPANY_ID);db.prepare(`INSERT INTO company_profiles(company_id,qc_manager_name,managing_director_name,updated_at) VALUES(?,?,?,?) ON CONFLICT(company_id) DO UPDATE SET qc_manager_name=excluded.qc_manager_name,managing_director_name=excluded.managing_director_name,updated_at=excluded.updated_at`).run(COMPANY_ID,qcManagerName,managingDirectorName,new Date().toISOString());db.exec('COMMIT');}catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{db.close();}return{companyName,qcManagerName,managingDirectorName,isConfigured:true};}
+export function readCompanyProfile():CompanyProfile{
+  const db=openDb();
+  try{
+    const company=db.prepare('SELECT name FROM companies WHERE id=?').get(COMPANY_ID) as {name:string}|undefined;
+    const profile=db.prepare(`SELECT qc_manager_name,managing_director_name,company_name_en,registration_no,national_id,phone,email,website,address,laboratory_name,laboratory_code,report_footer,logo_relative_path,report_show_logo,report_show_company_name,report_show_qc_manager,report_show_contact FROM company_profiles WHERE company_id=?`).get(COMPANY_ID) as CompanyProfileRow|undefined;
+    const companyName=company?.name?.trim()??'';
+    const qcManagerName=profile?.qc_manager_name?.trim()??'';
+    const managingDirectorName=profile?.managing_director_name?.trim()??'';
+    const logoRelativePath=profile?.logo_relative_path?.trim()??'';
+    return{
+      companyName,
+      companyNameEn:profile?.company_name_en?.trim()??'',
+      qcManagerName,
+      managingDirectorName,
+      registrationNo:profile?.registration_no?.trim()??'',
+      nationalId:profile?.national_id?.trim()??'',
+      phone:profile?.phone?.trim()??'',
+      email:profile?.email?.trim()??'',
+      website:profile?.website?.trim()??'',
+      address:profile?.address?.trim()??'',
+      laboratoryName:profile?.laboratory_name?.trim()??'',
+      laboratoryCode:profile?.laboratory_code?.trim()??'',
+      reportFooter:profile?.report_footer?.trim()??'',
+      logoRelativePath,
+      logoDataUrl:readLogoDataUrl(logoRelativePath),
+      reportShowLogo:(profile?.report_show_logo??1)===1,
+      reportShowCompanyName:(profile?.report_show_company_name??1)===1,
+      reportShowQcManager:(profile?.report_show_qc_manager??1)===1,
+      reportShowContact:(profile?.report_show_contact??1)===1,
+      isConfigured:Boolean(companyName&&companyName!=='شرکت شما'&&qcManagerName&&managingDirectorName)
+    };
+  }finally{db.close();}
+}
+
+export function saveCompanyProfile(input:CompanyProfileInput):CompanyProfile{
+  const companyName=normalizeName(input?.companyName,'نام شرکت');
+  const qcManagerName=normalizeName(input?.qcManagerName,'مسئول کنترل کیفیت');
+  const managingDirectorName=normalizeName(input?.managingDirectorName,'مدیرعامل');
+  const db=openDb();
+  try{
+    db.exec('BEGIN IMMEDIATE');
+    db.prepare('UPDATE companies SET name=? WHERE id=?').run(companyName,COMPANY_ID);
+    db.prepare(`INSERT INTO company_profiles(company_id,qc_manager_name,managing_director_name,updated_at) VALUES(?,?,?,?) ON CONFLICT(company_id) DO NOTHING`).run(COMPANY_ID,qcManagerName,managingDirectorName,new Date().toISOString());
+    const updates:string[]=['qc_manager_name=?','managing_director_name=?','updated_at=?'];
+    const values:unknown[]=[qcManagerName,managingDirectorName,new Date().toISOString()];
+    const strings:Array<[keyof CompanyProfileInput,string]>=[
+      ['companyNameEn','company_name_en'],['registrationNo','registration_no'],['nationalId','national_id'],['phone','phone'],['email','email'],['website','website'],['address','address'],['laboratoryName','laboratory_name'],['laboratoryCode','laboratory_code'],['reportFooter','report_footer']
+    ];
+    for(const[key,column]of strings){if(input[key]!==undefined){updates.push(`${column}=?`);values.push(normalizeOptional(input[key]));}}
+    const flags:Array<[keyof CompanyProfileInput,string]>=[['reportShowLogo','report_show_logo'],['reportShowCompanyName','report_show_company_name'],['reportShowQcManager','report_show_qc_manager'],['reportShowContact','report_show_contact']];
+    for(const[key,column]of flags){if(input[key]!==undefined){updates.push(`${column}=?`);values.push(input[key]?1:0);}}
+    values.push(COMPANY_ID);
+    db.prepare(`UPDATE company_profiles SET ${updates.join(',')} WHERE company_id=?`).run(...values);
+    db.exec('COMMIT');
+  }catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{db.close();}
+  return readCompanyProfile();
+}
+
+async function selectCompanyLogo(event:IpcMainInvokeEvent):Promise<SystemResult<CompanyProfile>>{
+  try{
+    const window=BrowserWindow.fromWebContents(event.sender);if(!window)throw new Error('پنجره برنامه در دسترس نیست');
+    const selection=await dialog.showOpenDialog(window,{title:'انتخاب لوگوی شرکت',properties:['openFile'],filters:[{name:'PNG Image',extensions:['png']}]});
+    if(selection.canceled||!selection.filePaths[0])return{ok:true,data:readCompanyProfile()};
+    const source=selection.filePaths[0];
+    const data=await readFile(source);
+    if(data.byteLength>MAX_LOGO_BYTES)throw new Error('حجم لوگو باید حداکثر ۲ مگابایت باشد.');
+    const pngSignature=Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]);
+    if(data.length<8||!data.subarray(0,8).equals(pngSignature))throw new Error('فایل انتخابی PNG معتبر نیست.');
+    const target=logoAbsolutePath(COMPANY_LOGO_RELATIVE);
+    await mkdir(dirname(target),{recursive:true});
+    await writeFile(target,data);
+    const db=openDb();
+    try{db.prepare('UPDATE company_profiles SET logo_relative_path=?,updated_at=? WHERE company_id=?').run(COMPANY_LOGO_RELATIVE,new Date().toISOString(),COMPANY_ID);}finally{db.close();}
+    return{ok:true,data:readCompanyProfile()};
+  }catch(error){console.error('[Tolou company logo]',error);return{ok:false,message:error instanceof Error&&/[\u0600-\u06FF]/u.test(error.message)?error.message:'ذخیره لوگوی شرکت انجام نشد.'};}
+}
+
+function removeCompanyLogo():CompanyProfile{
+  const current=readCompanyProfile();
+  const absolute=logoAbsolutePath(current.logoRelativePath);
+  if(absolute)rmSync(absolute,{force:true});
+  const db=openDb();
+  try{db.prepare('UPDATE company_profiles SET logo_relative_path=?,updated_at=? WHERE company_id=?').run('',new Date().toISOString(),COMPANY_ID);}finally{db.close();}
+  return readCompanyProfile();
+}
+
 function activateSubscription(input:ActivationInput){const plan=Number(input?.planMonths) as SubscriptionMonths;if(![3,6,12,24].includes(plan))throw new Error('مدت اشتراک معتبر نیست.');const payload=validateProductKey(input?.productKey,plan);const profile=saveCompanyProfile({companyName:input.companyName,qcManagerName:input.qcManagerName,managingDirectorName:input.managingDirectorName});const license=persistLicense(input.productKey,payload);return{profile,license};}
 
 function readSamplingSeriesReport(seriesId:string){const db=openDb();try{return createReportingService(db,{companyId:COMPANY_ID}).samplingSeriesReport(seriesId);}finally{db.close();}}
@@ -39,4 +188,4 @@ async function createBackup(event:IpcMainInvokeEvent):Promise<SystemResult<{canc
 async function restoreBackup(event:IpcMainInvokeEvent):Promise<SystemResult<{cancelled:boolean;restarting:boolean}>>{try{const window=BrowserWindow.fromWebContents(event.sender);if(!window)throw new Error('پنجره برنامه در دسترس نیست');const selection=await dialog.showOpenDialog(window,{title:'بارگذاری نسخه پشتیبان طلوع',properties:['openFile'],filters:[{name:'Tolou QC Backup',extensions:['tolouqcbackup']}]});if(selection.canceled||!selection.filePaths[0])return{ok:true,data:{cancelled:true,restarting:false}};const raw=gunzipSync(await readFile(selection.filePaths[0]));const parsed=JSON.parse(raw.toString('utf8')) as BackupEnvelope;if(parsed.magic!==BACKUP_MAGIC||parsed.version!==BACKUP_VERSION||typeof parsed.database!=='string'||!Array.isArray(parsed.attachments))throw new Error('فایل نسخه پشتیبان معتبر نیست');const userData=app.getPath('userData');const stagedDb=join(userData,STAGED_DB);const stagedAttachments=join(userData,STAGED_ATTACHMENTS);await writeFile(stagedDb,Buffer.from(parsed.database,'base64'));const validation=new DatabaseSync(stagedDb,{readOnly:true});try{validation.prepare('SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1').get();validation.prepare('SELECT id,name FROM companies LIMIT 1').get();}finally{validation.close();}await rm(stagedAttachments,{recursive:true,force:true});await mkdir(stagedAttachments,{recursive:true});for(const entry of parsed.attachments){if(typeof entry.path!=='string'||entry.path.includes('..')||entry.path.startsWith('/')||typeof entry.data!=='string')throw new Error('ساختار پیوست نسخه پشتیبان معتبر نیست');const target=join(stagedAttachments,...entry.path.split('/'));await mkdir(dirname(target),{recursive:true});await writeFile(target,Buffer.from(entry.data,'base64'));}await writeFile(join(userData,PENDING_MARKER),JSON.stringify({database:STAGED_DB,attachments:STAGED_ATTACHMENTS,createdAt:parsed.createdAt}),'utf8');setTimeout(()=>{app.relaunch();app.exit(0);},250);return{ok:true,data:{cancelled:false,restarting:true}};}catch(error){console.error('[Tolou restore]',error);return{ok:false,message:error instanceof Error&&/[\u0600-\u06FF]/u.test(error.message)?error.message:'بارگذاری نسخه پشتیبان انجام نشد.'};}}
 export function applyPendingRestore(userData:string){const marker=join(userData,PENDING_MARKER);if(!existsSync(marker))return;try{const data=JSON.parse(readFileSync(marker,'utf8')) as {database:string;attachments:string};const stagedDb=join(userData,basename(data.database));const stagedAttachments=join(userData,basename(data.attachments));const activeDb=join(userData,DB_NAME);const attachments=join(userData,'attachments');if(!existsSync(stagedDb))throw new Error('فایل پایگاه داده بازیابی یافت نشد');rmSync(activeDb,{force:true});renameSync(stagedDb,activeDb);rmSync(attachments,{recursive:true,force:true});if(existsSync(stagedAttachments))renameSync(stagedAttachments,attachments);rmSync(marker,{force:true});}catch(error){console.error('[Tolou pending restore]',error);throw error;}}
 
-app.whenReady().then(()=>{const register=(channel:string,handler:(event:IpcMainInvokeEvent,...args:any[])=>any)=>ipcMain.handle(channel,(event,...args)=>{if(!trusted(event))throw new Error('IPC sender rejected');return handler(event,...args);});register('system:company-profile:get',()=>safe(()=>readCompanyProfile()));register('system:company-profile:save',(_event,input)=>safe(()=>saveCompanyProfile(input)));register('system:license:status',()=>safe(()=>readLicenseStatus()));register('system:license:activate',(_event,input:ActivationInput)=>safe(()=>activateSubscription(input)));register('system:backup:create',event=>createBackup(event));register('system:backup:restore',event=>restoreBackup(event));register('system:series-report:get',(_event,seriesId:string)=>safe(()=>readSamplingSeriesReport(seriesId)));});
+app.whenReady().then(()=>{const register=(channel:string,handler:(event:IpcMainInvokeEvent,...args:any[])=>any)=>ipcMain.handle(channel,(event,...args)=>{if(!trusted(event))throw new Error('IPC sender rejected');return handler(event,...args);});register('system:company-profile:get',()=>safe(()=>readCompanyProfile()));register('system:company-profile:save',(_event,input:CompanyProfileInput)=>safe(()=>saveCompanyProfile(input)));register('system:company-logo:select',event=>selectCompanyLogo(event));register('system:company-logo:remove',()=>safe(()=>removeCompanyLogo()));register('system:license:status',()=>safe(()=>readLicenseStatus()));register('system:license:activate',(_event,input:ActivationInput)=>safe(()=>activateSubscription(input)));register('system:backup:create',event=>createBackup(event));register('system:backup:restore',event=>restoreBackup(event));register('system:series-report:get',(_event,seriesId:string)=>safe(()=>readSamplingSeriesReport(seriesId)));});
