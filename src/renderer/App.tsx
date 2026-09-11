@@ -19,6 +19,7 @@ import './ui-recovery.css';
 import './dashboard-precision.css';
 import './final-polish.css';
 import './liquid-background.css';
+import './workspace-normalization.css';
 
 type Metric={label:string;value:string;hint:string;tone?:'ok'|'warn'|'danger'};
 type WorkspaceView='dashboard'|'management'|'projects'|'sampling'|'fresh'|'specimens'|'results'|'review'|'analytics'|'reports'|'mixes'|'support'|'settings';
