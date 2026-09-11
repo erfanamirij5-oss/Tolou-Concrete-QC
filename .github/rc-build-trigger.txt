@@ -1,0 +1,3 @@
+Tolou Concrete QC Release Candidate installer build requested on 2026-09-11.
+Source branch: feature/ui-design-system
+Purpose: build Windows x64 RC installer from current branch head without merging main or creating a release/tag.
