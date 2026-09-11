@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const assets = [
@@ -29,4 +29,13 @@ for (const [source, target] of assets) {
   const absoluteTarget = resolve(target);
   mkdirSync(dirname(absoluteTarget), { recursive: true });
   copyFileSync(resolve(source), absoluteTarget);
+}
+
+const gameSource = resolve('resources/games/tolou-production-management/index.html');
+const gameTarget = resolve('dist-electron/games/tolou-batching-arcade.html');
+if (existsSync(gameSource)) {
+  mkdirSync(dirname(gameTarget), { recursive: true });
+  copyFileSync(gameSource, gameTarget);
+} else {
+  console.warn('[Tolou assets] Original game HTML is not present; packaged game asset was not copied.');
 }
