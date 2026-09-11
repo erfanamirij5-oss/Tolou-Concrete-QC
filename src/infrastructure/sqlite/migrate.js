@@ -14,6 +14,7 @@ const migrationFiles = [
   [10, './010-sampling-mix-snapshot.sql'],
   [11, './011-comparison-result-revisions.sql'],
   [12, './012-project-strength-requirements.sql'],
+  [13, './013-company-profile-branding.sql'],
 ];
 
 function loadMigrations() {
