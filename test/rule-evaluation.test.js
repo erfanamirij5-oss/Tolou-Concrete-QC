@@ -10,7 +10,8 @@ function setup(t){
  db.exec(`INSERT INTO companies(id,name) VALUES('c1','شرکت آزمایشی');
  INSERT INTO projects(id,company_id,name,customer_name) VALUES('p1','c1','پروژه','مشتری');
  INSERT INTO project_strength_requirements(project_id,company_id,characteristic_strength_mpa,seven_day_reference_ratio,created_at,created_by,updated_at,updated_by) VALUES('p1','c1',30,0.60,'2026-09-01T00:00:00.000Z','A','2026-09-01T00:00:00.000Z','A');
- INSERT INTO sampling_series(id,company_id,kind,project_id,sampled_at,sampler_name,entered_by) VALUES('s1','c1','customer','p1','2026-09-01T08:00:00.000Z','نمونه بردار','A');
+ INSERT INTO pours(id,company_id,project_id,occurred_at) VALUES('pour1','c1','p1','2026-09-01T07:30:00.000Z');
+ INSERT INTO sampling_series(id,company_id,kind,project_id,pour_id,sampled_at,sampler_name,entered_by) VALUES('s1','c1','customer','p1','pour1','2026-09-01T08:00:00.000Z','نمونه بردار','A');
  INSERT INTO samples(id,series_id,age_days,due_at) VALUES('sample1','s1',28,'2026-09-29T08:00:00.000Z');
  INSERT INTO result_revisions(sample_id,revision,strength_mpa,state,tested_at,tested_by,entered_by,entered_at,approved_by,reason) VALUES('sample1',1,27,'approved','2026-09-29T08:10:00.000Z','آزمایشگر','A','2026-09-29T08:20:00.000Z','تأییدکننده',NULL);`);
  return db;
@@ -24,7 +25,7 @@ function activeProfile(db){
 }
 
 test('project assignment requires an active profile and evaluation preserves source traceability',t=>{
- const db=setup(t);const profiles=createRuleProfileService(db,{companyId:'c1',actor:'مهندس'});profiles.createProfile({id:'draft','code':'DRAFT',title:'Draft',authority:'مرجع',documentCode:'D',documentVersion:'1'});
+ const db=setup(t);const profiles=createRuleProfileService(db,{companyId:'c1',actor:'مهندس'});profiles.createProfile({id:'draft',code:'DRAFT',title:'Draft',authority:'مرجع',documentCode:'D',documentVersion:'1'});
  const engine=createRuleEvaluationService(db,{companyId:'c1',actor:'QC'});assert.throws(()=>engine.assignProfile({projectId:'p1',profileId:'draft'}),/فعال/);
  activeProfile(db);engine.assignProfile({projectId:'p1',profileId:'rp1'});const evaluation=engine.evaluateResult({sampleId:'sample1',resultRevision:1});
  assert.equal(evaluation.evaluated,true);assert.equal(evaluation.overallStatus,'pass');assert.equal(evaluation.items[0].referenceClause,'Clause A');assert.equal(evaluation.items[0].sourceTitle,'Document X');assert.equal(evaluation.items[0].sourceVersion,'1');assert.equal(evaluation.items[0].calculation.requiredMpa,27);
