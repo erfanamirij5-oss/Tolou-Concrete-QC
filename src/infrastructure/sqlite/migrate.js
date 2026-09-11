@@ -19,6 +19,7 @@ const migrationFiles = [
   [15, './015-project-rule-evaluation.sql'],
   [16, './016-rule-profile-retirement.sql'],
   [17, './017-qc-exceptions.sql'],
+  [18, './018-qc-exception-integrity.sql'],
 ];
 
 function loadMigrations() {
@@ -36,7 +37,6 @@ function assertMigrationPlan(migrations) {
   }
 }
 
-// Driver-independent migration interface: db.exec(), db.prepare().get/all/run().
 export function migrate(db) {
   const migrations = loadMigrations();
   assertMigrationPlan(migrations);
@@ -48,9 +48,7 @@ export function migrate(db) {
     db.exec('CREATE TABLE IF NOT EXISTS schema_migrations(version INTEGER PRIMARY KEY, checksum TEXT NOT NULL) STRICT');
     const applied = db.prepare('SELECT version,checksum FROM schema_migrations ORDER BY version').all();
     const latestKnown = migrations.at(-1)?.version ?? 0;
-
     if (applied.some((row) => row.version > latestKnown)) throw new Error('نسخه پایگاه داده از برنامه جدیدتر است');
-
     for (let index = 0; index < applied.length; index += 1) {
       const expectedVersion = index + 1;
       const row = applied[index];
@@ -58,7 +56,6 @@ export function migrate(db) {
       const definition = migrations[index];
       if (!definition || row.checksum !== definition.checksum) throw new Error('تعریف نسخه پایگاه داده تغییر کرده است');
     }
-
     const insertMigration = db.prepare('INSERT INTO schema_migrations(version,checksum) VALUES(?,?)');
     for (const migration of migrations.slice(applied.length)) {
       db.exec(migration.sql);
