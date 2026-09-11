@@ -21,6 +21,7 @@ const migrationFiles = [
   [17, './017-qc-exceptions.sql'],
   [18, './018-qc-exception-integrity.sql'],
   [19, './019-qc-exception-current-view.sql'],
+  [20, './020-rule-evaluation-integrity.sql'],
 ];
 
 function loadMigrations() {
