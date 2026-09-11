@@ -17,7 +17,7 @@ type Branding={qcManagerName:string;managingDirectorName:string;companyNameEn:st
 type CompanyProfile=Branding&{companyName:string;logoDataUrl:string|null};
 type RuleProfile={id:string;code:string;title:string;authority:string;documentCode:string;documentVersion:string;effectiveDate:string|null};
 type ActionItem={exceptionKey:string;status:string;category:string;severity:string;sampleId:string|null;seriesId:string|null;title:string;detail:string;sourceType:string;sourceRef:string|null;observedAt:string;actor:string;createdAt:string};
-type DetailedReport=ProjectQcReport&{generatedAt:string;organization:Branding;series:DetailedSeries[];standards:{profile:RuleProfile|null;evaluationSummary:{total:number;pass:number;fail:number;notEvaluated:number};acceptanceEvaluated:boolean};actionItems:ActionItem[]};
+type DetailedReport=Omit<ProjectQcReport,'standards'>&{generatedAt:string;organization:Branding;series:DetailedSeries[];standards:{profile:RuleProfile|null;evaluationSummary:{total:number;pass:number;fail:number;notEvaluated:number};acceptanceEvaluated:boolean};actionItems:ActionItem[]};
 const stateLabel=(state:string|null)=>state==='approved'?'تأییدشده':state==='draft'?'پیش‌نویس':state==='void'?'باطل':'بدون نتیجه';
 const dimension=(s:DetailedSpecimen)=>s.shape==='cube'?`${n(s.lengthMm,2)} × ${n(s.widthMm,2)} × ${n(s.heightMm,2)} mm`:s.shape==='cylinder'?`Ø ${n(s.diameterMm,2)} × ${n(s.heightMm,2)} mm`:'—';
 const mixLabel=(ec:EngineeringContext|null)=>ec?.mixCode?`${ec.mixCode}${ec.mixTitle?` — ${ec.mixTitle}`:''}${ec.mixRevision!==null?` / R${ec.mixRevision}`:''}`:'—';
