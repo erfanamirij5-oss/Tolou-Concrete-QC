@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react';
 import './engineering-facts.css';
 import './result-context-enhancement.css';
+import './quality-status-system.css';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
