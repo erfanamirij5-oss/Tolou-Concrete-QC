@@ -11,7 +11,7 @@ type SystemResult<T>={ok:true;data:T}|{ok:false;message:string};
 
 function trusted(event:IpcMainInvokeEvent){const frame=event.senderFrame;if(!frame||frame!==event.sender.mainFrame)return false;const window=BrowserWindow.fromWebContents(event.sender);if(!window)return false;const devServer=process.env.VITE_DEV_SERVER_URL;if(devServer)return frame.url.startsWith(devServer);try{return new URL(frame.url).protocol==='file:';}catch{return false;}}
 function safe<T>(operation:()=>T):SystemResult<T>{try{return{ok:true,data:operation()};}catch(error){console.error('[Tolou rules]',error);return{ok:false,message:error instanceof Error&&/[\u0600-\u06FF]/u.test(error.message)?error.message:'عملیات Rule Profile انجام نشد.'};}}
-function withDb<T>(operation:(db:DatabaseSync)=>T){const db=new DatabaseSync(join(app.getPath('userData'),DB_NAME));try{return operation(db);}finally{db.close();}}
+function withDb<T>(operation:(db:DatabaseSync)=>T){const db=new DatabaseSync(join(app.getPath('userData'),DB_NAME));try{db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');if(db.prepare('PRAGMA foreign_keys').get().foreign_keys!==1)throw new Error('کنترل ارتباط داده‌ها فعال نشد');return operation(db);}finally{db.close();}}
 
 app.whenReady().then(()=>{
  const register=(channel:string,handler:(event:IpcMainInvokeEvent,...args:any[])=>any)=>ipcMain.handle(channel,(event,...args)=>{if(!trusted(event))throw new Error('IPC sender rejected');return handler(event,...args);});
