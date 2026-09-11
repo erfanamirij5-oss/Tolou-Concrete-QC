@@ -1,0 +1,42 @@
+/* Tolou Precision UI — semantic cues for Mix Designs + Reports */
+
+/* Mix design engineering facts: compact engineering notation rather than decorative icons. */
+.engineering-card-title>div{position:relative;padding-inline-start:42px}
+.engineering-card-title>div:before{position:absolute;inset-inline-start:0;top:0;width:31px;height:31px;display:grid;place-items:center;border-radius:9px;border:1px solid rgba(217,119,50,.18);background:linear-gradient(145deg,#fff6ed,#f4ece5);color:#a95620;font-size:8px;font-weight:900;letter-spacing:.02em;box-shadow:0 5px 14px rgba(16,28,48,.04)}
+.engineering-card:nth-child(1) .engineering-card-title>div:before{content:'MIX'}
+.engineering-card:nth-child(2) .engineering-card-title>div:before{content:'REV'}
+.engineering-card:nth-child(3) .engineering-card-title>div:before{content:'POUR'}
+.engineering-form>label:not(.engineering-field-wide)>span{display:flex;align-items:center;gap:7px}
+.engineering-form>label:not(.engineering-field-wide)>span:before{min-width:25px;height:20px;padding:0 4px;display:grid;place-items:center;border-radius:6px;background:#eef3f6;border:1px solid rgba(40,70,94,.09);color:#536b7d;font-size:7px;font-weight:900;font-variant-numeric:tabular-nums}
+.engineering-card--wide .engineering-form>label:nth-child(1)>span:before{content:'fc'}
+.engineering-card--wide .engineering-form>label:nth-child(2)>span:before{content:'w/c'}
+.engineering-card--wide .engineering-form>label:nth-child(3)>span:before{content:'S'}
+.engineering-card--wide .engineering-form>label:nth-child(4)>span:before{content:'Dmax'}
+.engineering-card--wide .engineering-form>label:nth-child(5)>span:before{content:'C'}
+.engineering-card--wide .engineering-form>label:nth-child(6)>span:before{content:'W'}
+.engineering-card--wide .engineering-form>label:nth-child(7)>span:before{content:'FA'}
+.engineering-card--wide .engineering-form>label:nth-child(8)>span:before{content:'CA'}
+.engineering-card--wide .engineering-form>label:nth-child(9)>span:before{content:'SCM'}
+.engineering-card--wide .engineering-form>label:nth-child(10)>span:before{content:'Ad'}
+.version-list{border-radius:14px;padding:13px!important;background:linear-gradient(145deg,#f9fbfc,#f0f4f6);border:1px solid rgba(40,60,80,.09)!important}
+.version-row{position:relative;padding-inline-start:38px!important}
+.version-row:before{content:'R';position:absolute;inset-inline-start:9px;top:50%;transform:translateY(-50%);width:21px;height:21px;display:grid;place-items:center;border-radius:6px;background:#fff3e9;border:1px solid rgba(217,119,50,.15);color:#ad5923;font-size:8px;font-weight:900}
+.version-row b{padding:4px 7px;border-radius:7px;background:#eef3f6;border:1px solid rgba(40,70,94,.08)}
+
+/* Report navigation */
+.report-mode-picker button{grid-template-columns:38px minmax(0,1fr);column-gap:10px;align-items:center}
+.report-mode-picker button>.report-mode-icon{grid-row:1/3;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#496175;background:#edf2f5;border:1px solid rgba(45,65,86,.09);transition:color .14s ease,background .14s ease,border-color .14s ease,transform .14s ease}
+.report-mode-picker button>.report-mode-icon svg{width:19px;height:19px}
+.report-mode-picker button>strong,.report-mode-picker button>small{grid-column:2}
+.report-mode-picker button.is-active>.report-mode-icon{color:#b35d25;background:#fff0e4;border-color:rgba(217,119,50,.19);transform:translateY(-1px)}
+.report-center-intro h2:before{content:'';display:inline-block;width:8px;height:8px;margin-inline-end:8px;border-radius:3px;background:#d97732;box-shadow:0 0 0 5px rgba(217,119,50,.08);vertical-align:middle}
+
+html[data-theme='dark'] .engineering-card-title>div:before{background:rgba(217,119,50,.12);border-color:rgba(217,119,50,.22);color:#e7a06e}
+html[data-theme='dark'] .engineering-form>label:not(.engineering-field-wide)>span:before{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.07);color:#b8c6d1}
+html[data-theme='dark'] .version-list{background:linear-gradient(145deg,#202c38,#19242f);border-color:rgba(255,255,255,.08)!important}
+html[data-theme='dark'] .version-row:before{background:rgba(217,119,50,.13);border-color:rgba(217,119,50,.2);color:#e6a06e}
+html[data-theme='dark'] .version-row b{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.07)}
+html[data-theme='dark'] .report-mode-picker button>.report-mode-icon{color:#b9c6d2;background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.07)}
+html[data-theme='dark'] .report-mode-picker button.is-active>.report-mode-icon{color:#e8a26e;background:rgba(217,119,50,.13);border-color:rgba(217,119,50,.22)}
+
+@media(max-width:760px){.engineering-card-title>div{padding-inline-start:38px}.report-mode-picker button{grid-template-columns:34px minmax(0,1fr)}.report-mode-picker button>.report-mode-icon{width:32px;height:32px}}
