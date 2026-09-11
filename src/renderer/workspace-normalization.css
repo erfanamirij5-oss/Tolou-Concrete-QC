@@ -10,4 +10,159 @@
 .report-center-shell>*{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .master-data-shell>*{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .project-workbench,.analytics-workbench,.workbench,.system-card{min-width:0}
+
+/* Phase 6 — remaining operational surfaces.
+   Glass is reserved for application chrome; engineering/data workspaces use opaque readable surfaces. */
+html[data-theme='light'] .content-grid>.workbench,
+html[data-theme='light'] .review-queue,
+html[data-theme='light'] .review-detail,
+html[data-theme='light'] .engineering-workbench{
+  background:linear-gradient(145deg,#fcfdfe 0%,#eef2f5 100%)!important;
+  border:1px solid rgba(45,65,86,.15)!important;
+  box-shadow:0 12px 30px rgba(16,28,48,.07),inset 0 1px 0 #fff!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+html[data-theme='light'] .content-grid>.workbench{padding:20px}
+html[data-theme='light'] .review-queue,html[data-theme='light'] .review-detail{border-radius:18px}
+
+html[data-theme='light'] .sampling-entry-card,
+html[data-theme='light'] .sampling-pour-context,
+html[data-theme='light'] .fresh-event-context,
+html[data-theme='light'] .sampling-option-card,
+html[data-theme='light'] .sampling-comparison-fields,
+html[data-theme='light'] .mix-snapshot-shell,
+html[data-theme='light'] .result-context--engineering,
+html[data-theme='light'] .result-own-form,
+html[data-theme='light'] .comparison-result-panel,
+html[data-theme='light'] .comparison-intelligence,
+html[data-theme='light'] .review-summary-grid>div,
+html[data-theme='light'] .review-context-strip>div,
+html[data-theme='light'] .review-reason,
+html[data-theme='light'] .strength-reference-card>div{
+  background:linear-gradient(145deg,#fff,#f1f4f6)!important;
+  border-color:rgba(45,65,86,.13)!important;
+  box-shadow:0 7px 20px rgba(16,28,48,.035)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme='light'] .sampling-pour-context-grid>div,
+html[data-theme='light'] .fresh-event-context-grid>div,
+html[data-theme='light'] .sampling-schedule-grid>div,
+html[data-theme='light'] .mix-library-preview span,
+html[data-theme='light'] .result-context>div,
+html[data-theme='light'] .comparison-party-summary article{
+  background:#f8fafb!important;
+  border-color:rgba(45,65,86,.11)!important;
+}
+html[data-theme='light'] .sampling-next-note,
+html[data-theme='light'] .mix-quality-note,
+html[data-theme='light'] .strength-reference-banner,
+html[data-theme='light'] .review-reference-note{
+  background:linear-gradient(135deg,#fff9f3,#f5eee8)!important;
+  border-color:rgba(217,119,50,.2)!important;
+  color:#4c5f72!important;
+}
+html[data-theme='light'] .result-stepper,
+html[data-theme='light'] .mix-source-switch,
+html[data-theme='light'] .segmented{
+  background:#e8edf1!important;
+  border-color:rgba(45,65,86,.12)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme='light'] .result-stepper button,
+html[data-theme='light'] .mix-source-switch button,
+html[data-theme='light'] .segmented button{
+  background:#f9fafb!important;
+  border:1px solid rgba(45,65,86,.11)!important;
+  color:#32495e!important;
+}
+html[data-theme='light'] .result-stepper button.is-active,
+html[data-theme='light'] .mix-source-switch button.is-active,
+html[data-theme='light'] .segmented button.is-active{
+  background:linear-gradient(135deg,#173b56,#10283b)!important;
+  border-color:#173b56!important;
+  color:#fff!important;
+}
+html[data-theme='light'] .workbench-form input,
+html[data-theme='light'] .workbench-form textarea,
+html[data-theme='light'] .workbench-form select,
+html[data-theme='light'] .comparison-result-form input,
+html[data-theme='light'] .comparison-result-form select,
+html[data-theme='light'] .mix-material-row input,
+html[data-theme='light'] .mix-material-row select{
+  background:#fff!important;
+  color:#152b3d!important;
+  border-color:rgba(45,65,86,.16)!important;
+}
+html[data-theme='light'] .workbench-form label,
+html[data-theme='light'] .comparison-result-form label{color:#31485d!important}
+html[data-theme='light'] .workbench-form label small,
+html[data-theme='light'] .result-context small,
+html[data-theme='light'] .sampling-pour-context-grid small,
+html[data-theme='light'] .fresh-event-context-grid small,
+html[data-theme='light'] .comparison-party-summary small{color:#607184!important;opacity:1!important}
+
+html[data-theme='light'] .review-queue-item{
+  background:#f8fafb!important;
+  border-color:rgba(45,65,86,.11)!important;
+  color:#173047!important;
+}
+html[data-theme='light'] .review-queue-item:hover{background:#fff!important}
+html[data-theme='light'] .review-queue-item.is-active{
+  background:linear-gradient(135deg,#fff8f2,#f5ece5)!important;
+  border-color:rgba(217,119,50,.25)!important;
+}
+html[data-theme='light'] .review-queue-item span{color:#43586c!important}
+html[data-theme='light'] .review-queue-item small{color:#647487!important}
+
+html[data-theme='light'] .engineering-workbench{padding:22px}
+html[data-theme='light'] .engineering-card{
+  background:linear-gradient(145deg,#fff,#eef2f5)!important;
+  border-color:rgba(45,65,86,.14)!important;
+  box-shadow:0 10px 28px rgba(16,28,48,.055),inset 0 1px 0 #fff!important;
+  backdrop-filter:none!important;
+}
+html[data-theme='light'] .engineering-card h4{color:#13283a!important}
+html[data-theme='light'] .engineering-card-title small,html[data-theme='light'] .engineering-lead{color:#5e7082!important}
+html[data-theme='light'] .engineering-form textarea,
+html[data-theme='light'] .engineering-form input,
+html[data-theme='light'] .engineering-form select,
+html[data-theme='light'] .compact-form input,
+html[data-theme='light'] .stacked-label select,
+html[data-theme='light'] .selector-row select{background:#fff!important;border-color:rgba(45,65,86,.16)!important;color:#13283a!important}
+html[data-theme='light'] .version-row,html[data-theme='light'] .locked-summary{background:#f4f7f9!important;border-color:rgba(45,65,86,.1)!important}
+
+html[data-theme='dark'] .content-grid>.workbench,
+html[data-theme='dark'] .review-queue,
+html[data-theme='dark'] .review-detail,
+html[data-theme='dark'] .engineering-workbench{
+  background:linear-gradient(145deg,#1c2733,#17212c)!important;
+  border-color:rgba(255,255,255,.1)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.2)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+html[data-theme='dark'] .sampling-entry-card,
+html[data-theme='dark'] .sampling-pour-context,
+html[data-theme='dark'] .fresh-event-context,
+html[data-theme='dark'] .sampling-option-card,
+html[data-theme='dark'] .sampling-comparison-fields,
+html[data-theme='dark'] .mix-snapshot-shell,
+html[data-theme='dark'] .result-context--engineering,
+html[data-theme='dark'] .result-own-form,
+html[data-theme='dark'] .comparison-result-panel,
+html[data-theme='dark'] .comparison-intelligence,
+html[data-theme='dark'] .review-summary-grid>div,
+html[data-theme='dark'] .review-context-strip>div,
+html[data-theme='dark'] .review-reason,
+html[data-theme='dark'] .engineering-card{
+  background:#202c38!important;
+  border-color:rgba(255,255,255,.09)!important;
+  backdrop-filter:none!important;
+}
+html[data-theme='dark'] .result-stepper,html[data-theme='dark'] .mix-source-switch,html[data-theme='dark'] .segmented{background:#18232e!important;border-color:rgba(255,255,255,.08)!important}
+html[data-theme='dark'] .result-stepper button,html[data-theme='dark'] .mix-source-switch button,html[data-theme='dark'] .segmented button{background:#263441!important;color:#dce6f0!important;border-color:rgba(255,255,255,.09)!important}
+html[data-theme='dark'] .result-stepper button.is-active,html[data-theme='dark'] .mix-source-switch button.is-active,html[data-theme='dark'] .segmented button.is-active{background:linear-gradient(135deg,#d97934,#c65e20)!important;color:#fff!important;border-color:#d97934!important}
+html[data-theme='dark'] .workbench-form input,html[data-theme='dark'] .workbench-form textarea,html[data-theme='dark'] .workbench-form select,html[data-theme='dark'] .engineering-form textarea,html[data-theme='dark'] .engineering-form input,html[data-theme='dark'] .engineering-form select,html[data-theme='dark'] .compact-form input,html[data-theme='dark'] .stacked-label select,html[data-theme='dark'] .selector-row select{background:#253341!important;color:#eef4fa!important;border-color:rgba(255,255,255,.12)!important}
+
 @media(max-width:1180px){:root{--workspace-content-max:100%}.workspace>.topbar,.content-grid>*{max-width:100%}}
