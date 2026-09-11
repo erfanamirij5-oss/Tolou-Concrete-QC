@@ -5,7 +5,9 @@ const bridge:TolouBridge=Object.freeze({getAppInfo:()=>ipcRenderer.invoke(channe
 contextBridge.exposeInMainWorld('tolou',bridge);
 contextBridge.exposeInMainWorld('tolouSystem',Object.freeze({
   getCompanyProfile:()=>ipcRenderer.invoke('system:company-profile:get'),
-  saveCompanyProfile:(input:{companyName:string;qcManagerName:string;managingDirectorName:string})=>ipcRenderer.invoke('system:company-profile:save',input),
+  saveCompanyProfile:(input:{companyName:string;qcManagerName:string;managingDirectorName:string;companyNameEn?:string;registrationNo?:string;nationalId?:string;phone?:string;email?:string;website?:string;address?:string;laboratoryName?:string;laboratoryCode?:string;reportFooter?:string;reportShowLogo?:boolean;reportShowCompanyName?:boolean;reportShowQcManager?:boolean;reportShowContact?:boolean})=>ipcRenderer.invoke('system:company-profile:save',input),
+  selectCompanyLogo:()=>ipcRenderer.invoke('system:company-logo:select'),
+  removeCompanyLogo:()=>ipcRenderer.invoke('system:company-logo:remove'),
   getLicenseStatus:()=>ipcRenderer.invoke('system:license:status'),
   activateLicense:(input:{companyName:string;qcManagerName:string;managingDirectorName:string;planMonths:3|6|12|24;productKey:string})=>ipcRenderer.invoke('system:license:activate',input),
   createBackup:()=>ipcRenderer.invoke('system:backup:create'),
