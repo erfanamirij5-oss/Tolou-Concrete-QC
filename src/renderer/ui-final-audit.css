@@ -1,0 +1,127 @@
+/* TOLOU Precision UI — final visual audit.
+   Content surfaces stay matte/readable; glass is reserved for application chrome. */
+
+/* Professional theme control using the official Lucide Moon/Sun geometry. */
+.theme-toggle{
+  --theme-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401'/%3E%3C/svg%3E");
+  position:relative;
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  padding:0!important;
+  border-radius:12px!important;
+  color:#314b62!important;
+  background:linear-gradient(145deg,#ffffff 0%,#edf1f4 100%)!important;
+  border:1px solid rgba(45,65,86,.17)!important;
+  box-shadow:0 6px 18px rgba(16,28,48,.09),inset 0 1px 0 #fff!important;
+  font-size:0!important;
+  overflow:hidden!important;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease!important;
+}
+.theme-toggle::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  margin:auto!important;
+  width:21px!important;
+  height:21px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:currentColor!important;
+  box-shadow:none!important;
+  -webkit-mask:var(--theme-icon) center/contain no-repeat!important;
+  mask:var(--theme-icon) center/contain no-repeat!important;
+}
+.theme-toggle::after{content:none!important;display:none!important}
+.theme-toggle:hover{
+  transform:translateY(-1px)!important;
+  color:#c76324!important;
+  border-color:rgba(217,119,50,.34)!important;
+  box-shadow:0 9px 22px rgba(16,28,48,.12),0 0 0 3px rgba(217,119,50,.055)!important;
+}
+.theme-toggle:focus-visible{outline:none!important;box-shadow:0 0 0 3px rgba(217,119,50,.17),0 8px 20px rgba(16,28,48,.1)!important}
+html[data-theme='dark'] .theme-toggle{
+  --theme-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2'/%3E%3Cpath d='M12 20v2'/%3E%3Cpath d='m4.93 4.93 1.41 1.41'/%3E%3Cpath d='m17.66 17.66 1.41 1.41'/%3E%3Cpath d='M2 12h2'/%3E%3Cpath d='M20 12h2'/%3E%3Cpath d='m6.34 17.66-1.41 1.41'/%3E%3Cpath d='m19.07 4.93-1.41 1.41'/%3E%3C/svg%3E");
+  color:#ffc45f!important;
+  background:linear-gradient(145deg,#24313f 0%,#18232e 100%)!important;
+  border-color:rgba(255,196,95,.28)!important;
+  box-shadow:0 7px 20px rgba(0,0,0,.22),0 0 18px rgba(255,184,69,.12)!important;
+}
+html[data-theme='dark'] .theme-toggle:hover{
+  color:#ffd37f!important;
+  border-color:rgba(255,196,95,.46)!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.28),0 0 22px rgba(255,184,69,.18)!important;
+}
+
+/* Final content-surface contract: operational/data cards are opaque and readable. */
+html[data-theme='light'] .content-grid .glass:not(.glass--dark){
+  background:linear-gradient(145deg,#fcfdfe 0%,#eef2f5 100%)!important;
+  border-color:rgba(45,65,86,.15)!important;
+  box-shadow:0 10px 28px rgba(16,28,48,.065),inset 0 1px 0 #fff!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+html[data-theme='dark'] .content-grid .glass:not(.glass--dark){
+  background:linear-gradient(145deg,#1c2733 0%,#17212c 100%)!important;
+  border-color:rgba(255,255,255,.1)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.2)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+html[data-theme='light'] .content-grid .panel,
+html[data-theme='light'] .content-grid .recovery-empty,
+html[data-theme='light'] .content-grid .settings-note,
+html[data-theme='light'] .content-grid .report-mode-note,
+html[data-theme='light'] .content-grid .analytics-note{
+  background:linear-gradient(145deg,#fafcfd,#eef2f5)!important;
+  border-color:rgba(45,65,86,.14)!important;
+  color:#4d6073!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+html[data-theme='light'] .content-grid .recovery-empty h3{color:#10283b!important}
+html[data-theme='light'] .content-grid .recovery-empty p{color:#5c6d7f!important;opacity:1!important}
+
+html[data-theme='dark'] .content-grid .panel,
+html[data-theme='dark'] .content-grid .recovery-empty,
+html[data-theme='dark'] .content-grid .settings-note,
+html[data-theme='dark'] .content-grid .report-mode-note,
+html[data-theme='dark'] .content-grid .analytics-note{
+  background:linear-gradient(145deg,#202c38,#19242f)!important;
+  border-color:rgba(255,255,255,.09)!important;
+  color:#b8c5d3!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+/* Form controls must not inherit translucent glass surfaces. */
+html[data-theme='light'] .content-grid input:not([type='checkbox']):not([type='radio']),
+html[data-theme='light'] .content-grid select,
+html[data-theme='light'] .content-grid textarea{
+  background:#fff!important;
+  color:#152b3d!important;
+  border-color:rgba(45,65,86,.16)!important;
+}
+html[data-theme='dark'] .content-grid input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] .content-grid select,
+html[data-theme='dark'] .content-grid textarea{
+  background:#253341!important;
+  color:#eef4fa!important;
+  border-color:rgba(255,255,255,.12)!important;
+}
+
+html[data-theme='light'] .content-grid .table-wrap{
+  background:#fff!important;
+  border-color:rgba(45,65,86,.12)!important;
+  box-shadow:0 7px 20px rgba(16,28,48,.035)!important;
+}
+html[data-theme='dark'] .content-grid .table-wrap{
+  background:#1e2a36!important;
+  border-color:rgba(255,255,255,.09)!important;
+}
+
+@media(max-width:760px){
+  .theme-toggle{width:40px!important;height:40px!important;min-width:40px!important}
+  .theme-toggle::before{width:20px!important;height:20px!important}
+}
