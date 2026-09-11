@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import './system-navigation.css';
 
 type Profile={companyName:string;qcManagerName:string;managingDirectorName:string;isConfigured:boolean};
 type Mode='sidebar'|'topbar'|'settings'|'onboarding';
