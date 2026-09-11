@@ -16,7 +16,7 @@ const n=(value:number|null,digits=2)=>value==null?'—':value.toLocaleString('fa
 const stateLabel=(value:string|null)=>value==='approved'?'تأییدشده':value==='draft'?'منتظر تأیید':value==='void'?'باطل':'بدون نتیجه';
 const shapeLabel=(row:ReportSpecimen)=>row.shape==='cube'?`مکعب ${n(row.lengthMm,0)}×${n(row.widthMm,0)}×${n(row.heightMm,0)} mm`:row.shape==='cylinder'?`استوانه Ø${n(row.diameterMm,0)}×${n(row.heightMm,0)} mm`:'—';
 const mixLabel=(ec:EngineeringContext|null)=>ec?.mixCode?`${ec.mixCode}${ec.mixTitle?` — ${ec.mixTitle}`:''}${ec.mixRevision!==null?` / R${ec.mixRevision}`:''}`:'—';
-const severity=value=>value==='critical'?'بحرانی':value==='warning'?'هشدار':'اطلاع';
+const severity=(value:string)=>value==='critical'?'بحرانی':value==='warning'?'هشدار':'اطلاع';
 
 export function SamplingSeriesReportWorkbench({refreshKey=0,initialProjectId=''}:{refreshKey?:number;initialProjectId?:string}){
  const[projects,setProjects]=useState<ProjectSummary[]>([]),[projectId,setProjectId]=useState(initialProjectId),[series,setSeries]=useState<SeriesSummary[]>([]),[seriesId,setSeriesId]=useState(''),[report,setReport]=useState<SeriesReport|null>(null),[profile,setProfile]=useState<CompanyProfile|null>(null),[message,setMessage]=useState(''),[loading,setLoading]=useState(false),[exporting,setExporting]=useState(false);
