@@ -16,6 +16,7 @@ const migrationFiles = [
   [12, './012-project-strength-requirements.sql'],
   [13, './013-company-profile-branding.sql'],
   [14, './014-rule-profiles.sql'],
+  [15, './015-project-rule-evaluation.sql'],
 ];
 
 function loadMigrations() {
