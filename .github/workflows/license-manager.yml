@@ -1,0 +1,51 @@
+name: Tolou License Manager Windows
+on:
+  push:
+    branches: ['feature/**']
+    paths:
+      - 'tools/license-manager/**'
+      - 'scripts/build-license-manager.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/license-manager.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - name: Build standalone License Manager
+        run: npm run license-manager:make
+      - name: Verify packaged License Manager security fuses
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path out-license-manager -Filter TolouLicenseManager.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged TolouLicenseManager.exe was not found.' }
+          $fuses = (npx electron-fuses read --app $exe.FullName 2>&1 | Out-String)
+          Write-Host $fuses
+          @(
+            'RunAsNode is Disabled',
+            'EnableNodeOptionsEnvironmentVariable is Disabled',
+            'EnableNodeCliInspectArguments is Disabled',
+            'EnableEmbeddedAsarIntegrityValidation is Enabled',
+            'OnlyLoadAppFromAsar is Enabled'
+          ) | ForEach-Object {
+            if (-not $fuses.Contains($_)) { throw "Required Electron fuse state missing: $_" }
+          }
+      - name: Upload License Manager installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tolou-License-Manager-Windows-x64
+          path: |
+            out-license-manager/make/squirrel.windows/x64/*.exe
+            out-license-manager/make/squirrel.windows/x64/*.nupkg
+            out-license-manager/make/squirrel.windows/x64/RELEASES
+          if-no-files-found: error
