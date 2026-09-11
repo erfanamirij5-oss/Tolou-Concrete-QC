@@ -32,8 +32,9 @@ export function ProjectWorkbench({onChanged,refreshKey=0}:{onChanged?:()=>void;r
  async function resolveConcreteSourceId(rawName:string){
   const name=rawName.trim();if(!name)return null;
   const existing=sources.find(item=>normalizeSearch(item.name)===normalizeSearch(name));if(existing)return existing.id;
-  const id=nextId('SRC'),code=nextId('AUTO-SRC');const created=await window.tolou.createConcreteSource({id,code,name,sourceType:'external'});if(!created.ok)throw new Error(created.message);
-  setSources(current=>[...current,{id:created.data.id,code:created.data.code,name:created.data.name,source_type:'external',archived:0}]);return created.data.id;
+  const id=nextId('SRC'),code=nextId('AUTO-SRC');
+  const created=await window.tolou.createConcreteSource({id,code,name,sourceType:'unspecified'} as Parameters<typeof window.tolou.createConcreteSource>[0]);if(!created.ok)throw new Error(created.message);
+  await reloadParties();return created.data.id;
  }
 
  async function submitProject(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=event.currentTarget,data=new FormData(form);setBusy(true);setMessage('');try{const result=await window.tolou.createProject({id:String(data.get('id')),name:String(data.get('name')),customerName:String(data.get('customerName')),address:String(data.get('address')??'')});if(!result.ok)throw new Error(result.message);setMessage(`پروژه ${String(data.get('name'))} ثبت شد.`);form.reset();setProjectId(nextId('PRJ'));await reloadProjects();onChanged?.();}catch(e){setMessage(e instanceof Error?e.message:'ثبت پروژه انجام نشد');}finally{setBusy(false);}}
