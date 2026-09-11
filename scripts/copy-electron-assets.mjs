@@ -1,4 +1,5 @@
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 
 const assets = [
@@ -33,7 +34,12 @@ for (const [source, target] of assets) {
 
 const gameSource = resolve('resources/games/tolou-production-management/index.html');
 const gameTarget = resolve('dist-electron/games/tolou-batching-arcade.html');
+const expectedGameSha256 = '9ee25a8b214d56823ff5f1bd0d82f2109ff3f7b15c7eb101c29e579b3c2e6d18';
 if (existsSync(gameSource)) {
+  const actualGameSha256 = createHash('sha256').update(readFileSync(gameSource)).digest('hex');
+  if (actualGameSha256 !== expectedGameSha256) {
+    throw new Error(`[Tolou assets] Original game HTML integrity check failed. Expected ${expectedGameSha256}, got ${actualGameSha256}.`);
+  }
   mkdirSync(dirname(gameTarget), { recursive: true });
   copyFileSync(gameSource, gameTarget);
 } else {
