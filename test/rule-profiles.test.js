@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {migrate} from '../src/infrastructure/sqlite/migrate.js';
 import {createRuleProfileService} from '../src/application/rule-profiles.js';
 
-test('rule profile activation requires referenced verified tested rules and becomes immutable',t=>{
+test('rule profile activation requires referenced verified tested rules and stays immutable through retirement',t=>{
  const db=new DatabaseSync(':memory:');t.after(()=>db.close());migrate(db);db.prepare('INSERT INTO companies(id,name) VALUES(?,?)').run('c1','شرکت آزمایشی');
  const service=createRuleProfileService(db,{companyId:'c1',actor:'مهندس'});
  service.createProfile({id:'rp1',code:'TEST',title:'پروفایل آزمایشی',authority:'مرجع آزمایشی',documentCode:'DOC-1',documentVersion:'2026'});
@@ -13,6 +13,10 @@ test('rule profile activation requires referenced verified tested rules and beco
  service.verifyRule({profileId:'rp1',ruleId:'r1',testCaseCount:3});
  const active=service.activateProfile('rp1');assert.equal(active.status,'active');
  const profile=service.getProfile('rp1');assert.equal(profile.rules[0].verification_status,'verified');assert.equal(profile.rules[0].test_case_count,3);
+ assert.throws(()=>db.prepare('UPDATE rule_profiles SET title=? WHERE id=?').run('تغییر','rp1'),/immutable/);
+ assert.throws(()=>db.prepare('UPDATE rule_profile_rules SET enabled=0 WHERE id=?').run('r1'),/immutable/);
+ const retired=service.retireProfile('rp1');assert.equal(retired.status,'retired');
+ const after=service.getProfile('rp1');assert.equal(after.profile.status,'retired');assert.ok(after.profile.retired_at);assert.equal(after.profile.retired_by,'مهندس');
  assert.throws(()=>db.prepare('UPDATE rule_profiles SET title=? WHERE id=?').run('تغییر','rp1'),/immutable/);
  assert.throws(()=>db.prepare('UPDATE rule_profile_rules SET enabled=0 WHERE id=?').run('r1'),/immutable/);
 });
