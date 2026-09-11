@@ -5,7 +5,7 @@ import {PersianDateTimeInput} from './PersianDateTimeInput';
 import './qc-parties-workbench.css';
 
 const nextId=(prefix:string)=>`${prefix}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2,5).toUpperCase()}`;
-const typeLabel=(value:'internal'|'external')=>value==='internal'?'داخلی':'خارجی';
+const typeLabel=(value:string)=>value==='internal'?'داخلی':value==='external'?'خارجی':'نامشخص';
 const fileSize=(bytes:number)=>bytes<1024?`${bytes.toLocaleString('fa-IR')} B`:`${(bytes/1024).toLocaleString('fa-IR',{maximumFractionDigits:1})} KB`;
 
 export function QcPartiesWorkbench({onChanged,refreshKey=0}:{onChanged?:()=>void;refreshKey?:number}){
