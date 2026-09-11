@@ -22,3 +22,7 @@ contextBridge.exposeInMainWorld('tolouTraceability',Object.freeze({
   saveMixSnapshot:(input:unknown)=>ipcRenderer.invoke('sampling-traceability:save-mix-snapshot',input),
   getMixSnapshot:(seriesId:string)=>ipcRenderer.invoke('sampling-traceability:get-mix-snapshot',seriesId)
 }));
+contextBridge.exposeInMainWorld('tolouManagement',Object.freeze({
+  getSummary:(input:{projectId?:string|null;startAt?:string|null;endAt?:string|null}={})=>ipcRenderer.invoke('management:summary',input),
+  getDataset:(input:{projectId?:string|null;startAt?:string|null;endAt?:string|null}={})=>ipcRenderer.invoke('management:dataset',input)
+}));
