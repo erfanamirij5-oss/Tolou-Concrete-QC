@@ -16,4 +16,5 @@ export const ReviewIcon=(props:IconProps)=><IconBase {...props}><circle cx="12" 
 export const AnalyticsIcon=(props:IconProps)=><IconBase {...props}><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></IconBase>;
 export const ReportsIcon=(props:IconProps)=><IconBase {...props}><path d="M6 3h9l3 3v15H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></IconBase>;
 export const MixIcon=(props:IconProps)=><IconBase {...props}><path d="M4 17h16M6 17l2-8h8l2 8"/><path d="M9 9V5h6v4M10 13h4"/></IconBase>;
+export const SupportIcon=(props:IconProps)=><IconBase {...props}><path d="M4 13a8 8 0 0 1 16 0"/><path d="M4 13v4a2 2 0 0 0 2 2h2v-6H4ZM20 13v4a2 2 0 0 1-2 2h-2v-6h4Z"/><path d="M16 19c0 1.1-1.8 2-4 2"/></IconBase>;
 export const SettingsIcon=(props:IconProps)=><IconBase {...props}><circle cx="12" cy="12" r="3"/><path d="M19 12a7.2 7.2 0 0 0-.1-1l2-1.6-2-3.4-2.5 1a7.5 7.5 0 0 0-1.7-1L14.3 3h-4.6l-.4 3a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.4 2 1.6a7.2 7.2 0 0 0 0 2l-2 1.6 2 3.4 2.5-1a7.5 7.5 0 0 0 1.7 1l.4 3h4.6l.4-3a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.4-2-1.6c.1-.3.1-.7.1-1Z"/></IconBase>;
