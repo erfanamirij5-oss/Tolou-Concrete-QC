@@ -18,6 +18,7 @@ const assets = [
   ['src/infrastructure/sqlite/014-rule-profiles.sql', 'dist-electron/infrastructure/sqlite/014-rule-profiles.sql'],
   ['src/infrastructure/sqlite/015-project-rule-evaluation.sql', 'dist-electron/infrastructure/sqlite/015-project-rule-evaluation.sql'],
   ['src/infrastructure/sqlite/016-rule-profile-retirement.sql', 'dist-electron/infrastructure/sqlite/016-rule-profile-retirement.sql'],
+  ['src/infrastructure/sqlite/017-qc-exceptions.sql', 'dist-electron/infrastructure/sqlite/017-qc-exceptions.sql'],
   ['assets/icons/Tolou-Concrete-QC.ico', 'dist-electron/assets/icons/Tolou-Concrete-QC.ico'],
 ];
 
