@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SamplingSeriesReportWorkbench } from './SamplingSeriesReportWorkbench';
 import { ProjectQcReportWorkbench } from './ProjectQcReportWorkbench';
-import { AnalyticsWorkbench } from './AnalyticsWorkbench';
+import { StatisticalQcReportWorkbench } from './StatisticalQcReportWorkbench';
 import './report-center.css';
 
 type ReportMode='test'|'project'|'statistics';
@@ -18,7 +18,7 @@ export function ReportCenter({refreshKey=0,initialProjectId=''}:{refreshKey?:num
     <div className="report-mode-content">
       {mode==='test'&&<SamplingSeriesReportWorkbench refreshKey={refreshKey} initialProjectId={initialProjectId}/>} 
       {mode==='project'&&<ProjectQcReportWorkbench refreshKey={refreshKey}/>} 
-      {mode==='statistics'&&<><div className="report-mode-note"><strong>گزارش آماری</strong><span>بازه، پروژه، مشتری، منبع بتن و نسخه طرح اختلاط را فیلتر کنید. خروجی این بخش برای تحلیل روند و مقایسه است، نه صدور حکم قبولی/رد.</span></div><AnalyticsWorkbench refreshKey={refreshKey}/></>}
+      {mode==='statistics'&&<StatisticalQcReportWorkbench refreshKey={refreshKey}/>} 
     </div>
   </section>;
 }
