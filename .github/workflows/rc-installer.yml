@@ -1,0 +1,51 @@
+name: Windows RC installer
+on:
+  push:
+    branches: ['feature/ui-design-system']
+permissions:
+  contents: read
+jobs:
+  rc-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - name: Build renderer and Electron main for RC
+        shell: pwsh
+        run: |
+          npx vite build
+          npx tsc -p tsconfig.electron.json
+          node scripts/copy-electron-assets.mjs
+      - name: Build Windows RC installer
+        run: npx electron-forge make --platform=win32 --arch=x64
+      - name: Verify packaged Electron security fuses
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path out -Filter TolouConcreteQC.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged TolouConcreteQC.exe was not found.' }
+          $fuses = (npx electron-fuses read --app $exe.FullName 2>&1 | Out-String)
+          Write-Host $fuses
+          @(
+            'RunAsNode is Disabled',
+            'EnableNodeOptionsEnvironmentVariable is Disabled',
+            'EnableNodeCliInspectArguments is Disabled',
+            'EnableEmbeddedAsarIntegrityValidation is Enabled',
+            'OnlyLoadAppFromAsar is Enabled'
+          ) | ForEach-Object {
+            if (-not $fuses.Contains($_)) { throw "Required Electron fuse state missing: $_" }
+          }
+      - name: Upload Windows RC installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tolou-Concrete-QC-RC-Windows-x64
+          path: |
+            out/make/squirrel.windows/x64/*.exe
+            out/make/squirrel.windows/x64/*.nupkg
+            out/make/squirrel.windows/x64/RELEASES
+          if-no-files-found: error
