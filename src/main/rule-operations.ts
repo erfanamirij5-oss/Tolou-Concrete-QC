@@ -17,6 +17,7 @@ app.whenReady().then(()=>{
  const register=(channel:string,handler:(event:IpcMainInvokeEvent,...args:any[])=>any)=>ipcMain.handle(channel,(event,...args)=>{if(!trusted(event))throw new Error('IPC sender rejected');return handler(event,...args);});
  register('rules:profiles:list',()=>safe(()=>withDb(db=>createRuleProfileService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).listProfiles())));
  register('rules:profiles:get',(_event,profileId:string)=>safe(()=>withDb(db=>createRuleProfileService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).getProfile(profileId))));
+ register('rules:profiles:retire',(_event,profileId:string)=>safe(()=>withDb(db=>createRuleProfileService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).retireProfile(profileId))));
  register('rules:project-assignment:get',(_event,projectId:string)=>safe(()=>withDb(db=>createRuleEvaluationService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).getProjectAssignment(projectId))));
  register('rules:project-assignment:set',(_event,input:{projectId:string;profileId:string})=>safe(()=>withDb(db=>createRuleEvaluationService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).assignProfile(input))));
  register('rules:evaluate-result',(_event,input:{sampleId:string;resultRevision:number})=>safe(()=>withDb(db=>createRuleEvaluationService(db,{companyId:COMPANY_ID,actor:LOCAL_ACTOR}).evaluateResult(input))));
