@@ -28,7 +28,7 @@ test('project report workbook survives XLSX binary round-trip with stable Persia
   assert.ok(Buffer.isBuffer(bytes));
   assert.ok(bytes.length>0);
   const parsed=XLSX.read(bytes);
-  assert.deepEqual(parsed.SheetNames,['خلاصه مدیریتی','ریز نتایج آزمون','خلاصه نوبت‌های نمونه‌گیری','داده‌های روند','مقاومت برحسب سن']);
+  assert.deepEqual(parsed.SheetNames,['خلاصه مدیریتی','Master QC Dataset','ریز نتایج آزمون','خلاصه نوبت‌های نمونه‌گیری','داده‌های روند','مقاومت برحسب سن']);
 
   const summary=parsed.Sheets['خلاصه مدیریتی'];
   const rows=XLSX.utils.sheet_to_json(summary,{header:1,raw:true});
@@ -38,6 +38,11 @@ test('project report workbook survives XLSX binary round-trip with stable Persia
   assert.equal(approvedRow?.[1],1);
   assert.equal(summary['B11']?.t,'n');
   assert.equal(summary['B12']?.t,'n');
+
+  const master=parsed.Sheets['Master QC Dataset'];
+  const masterRows=XLSX.utils.sheet_to_json(master,{header:1,raw:true});
+  assert.equal(masterRows.length,2);
+  assert.equal(masterRows[1]?.[0],1);
 
   const trend=parsed.Sheets['داده‌های روند'];
   const trendRows=XLSX.utils.sheet_to_json(trend,{header:1,raw:true});
