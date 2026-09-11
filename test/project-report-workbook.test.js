@@ -42,7 +42,7 @@ test('project report workbook survives XLSX binary round-trip with stable Persia
   const master=parsed.Sheets['Master QC Dataset'];
   const masterRows=XLSX.utils.sheet_to_json(master,{header:1,raw:true});
   assert.equal(masterRows.length,2);
-  assert.equal(masterRows[1]?.[0],1);
+  assert.equal(masterRows[1]?.[0],'s1');
 
   const trend=parsed.Sheets['داده‌های روند'];
   const trendRows=XLSX.utils.sheet_to_json(trend,{header:1,raw:true});
