@@ -19,13 +19,28 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
-      - name: Build Windows installer
-        run: npx electron-forge make --platform=win32 --arch=x64
-      - name: Verify packaged Electron security fuses
+      - name: Verify original production game asset
+        shell: pwsh
+        run: |
+          $expected = '9ee25a8b214d56823ff5f1bd0d82f2109ff3f7b15c7eb101c29e579b3c2e6d18'
+          $source = 'resources/games/tolou-production-management/index.html'
+          $copied = 'dist-electron/games/tolou-batching-arcade.html'
+          if (-not (Test-Path $source)) { throw "Original game asset missing: $source" }
+          if (-not (Test-Path $copied)) { throw "Built game asset missing: $copied" }
+          $sourceHash = (Get-FileHash $source -Algorithm SHA256).Hash.ToLowerInvariant()
+          $copiedHash = (Get-FileHash $copied -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sourceHash -ne $expected) { throw "Source game hash mismatch: $sourceHash" }
+          if ($copiedHash -ne $expected) { throw "Built game hash mismatch: $copiedHash" }
+          Write-Host "Game asset integrity verified: $expected"
+      - name: Package Windows app without installer
+        run: npx electron-forge package --platform=win32 --arch=x64
+      - name: Verify packaged Electron app
         shell: pwsh
         run: |
           $exe = Get-ChildItem -Path out -Filter TolouConcreteQC.exe -Recurse | Select-Object -First 1
           if (-not $exe) { throw 'Packaged TolouConcreteQC.exe was not found.' }
+          $appAsar = Get-ChildItem -Path out -Filter app.asar -Recurse | Select-Object -First 1
+          if (-not $appAsar) { throw 'Packaged app.asar was not found.' }
           $fuses = (npx electron-fuses read --app $exe.FullName 2>&1 | Out-String)
           Write-Host $fuses
           @(
@@ -37,12 +52,3 @@ jobs:
           ) | ForEach-Object {
             if (-not $fuses.Contains($_)) { throw "Required Electron fuse state missing: $_" }
           }
-      - name: Upload Windows installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Tolou-Concrete-QC-Windows-x64
-          path: |
-            out/make/squirrel.windows/x64/*.exe
-            out/make/squirrel.windows/x64/*.nupkg
-            out/make/squirrel.windows/x64/RELEASES
-          if-no-files-found: error
