@@ -18,6 +18,7 @@ const migrationFiles = [
   [14, './014-rule-profiles.sql'],
   [15, './015-project-rule-evaluation.sql'],
   [16, './016-rule-profile-retirement.sql'],
+  [17, './017-qc-exceptions.sql'],
 ];
 
 function loadMigrations() {
