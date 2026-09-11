@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent, type OpenDialogOptions } from 'electron';
 import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -9,7 +9,7 @@ function bundledGamePath(){return join(app.getAppPath(),'dist-electron','games',
 function managedGamePath(){return join(app.getPath('userData'),'games','tolou-batching-arcade.html');}
 function findCompanion(root:string,depth=0):string|null{if(depth>2||!existsSync(root))return null;try{for(const entry of readdirSync(root,{withFileTypes:true})){if(entry.isFile()&&GAME_NAMES.has(entry.name))return join(root,entry.name);if(entry.isDirectory()&&depth<2){const found=findCompanion(join(root,entry.name),depth+1);if(found)return found;}}}catch{}return null;}
 function importGame(source:string){const managed=managedGamePath();mkdirSync(dirname(managed),{recursive:true});copyFileSync(source,managed);return managed;}
-async function resolveGamePath(owner:BrowserWindow|null){const bundled=bundledGamePath();if(existsSync(bundled))return bundled;const managed=managedGamePath();if(existsSync(managed))return managed;for(const key of ['downloads','desktop'] as const){const companion=findCompanion(app.getPath(key));if(companion)return importGame(companion);}const options={title:'انتخاب فایل اصلی بازی طلوع',properties:['openFile'] as const,filters:[{name:'Tolou HTML Game',extensions:['html','htm']}]} ;const choice=owner?await dialog.showOpenDialog(owner,options):await dialog.showOpenDialog(options);if(choice.canceled||!choice.filePaths[0])return null;return importGame(choice.filePaths[0]);}
+async function resolveGamePath(owner:BrowserWindow|null){const bundled=bundledGamePath();if(existsSync(bundled))return bundled;const managed=managedGamePath();if(existsSync(managed))return managed;for(const key of ['downloads','desktop'] as const){const companion=findCompanion(app.getPath(key));if(companion)return importGame(companion);}const options:OpenDialogOptions={title:'انتخاب فایل اصلی بازی طلوع',properties:['openFile'],filters:[{name:'Tolou HTML Game',extensions:['html','htm']}]};const choice=owner?await dialog.showOpenDialog(owner,options):await dialog.showOpenDialog(options);if(choice.canceled||!choice.filePaths[0])return null;return importGame(choice.filePaths[0]);}
 
 app.whenReady().then(()=>{
  ipcMain.handle('entertainment:launch-production-game',async event=>{
